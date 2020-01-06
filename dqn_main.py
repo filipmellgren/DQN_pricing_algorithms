@@ -8,8 +8,10 @@ Created on Sat Dec 28 14:47:03 2019
 !echo "# DQN_pricing_algorithms" >> README.md
 !git init
 !git add README.md
+!git add cont_bertrand.py
+!git add config.py
 !git add dqn_main.py
-!git commit -m "first commit"
+!git commit -m "commit"
 !git remote add origin https://github.com/filipmellgren/DQN_pricing_algorithms.git
 !git push -u origin master
 
@@ -31,104 +33,35 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 import gym
 import numpy as np
-import collections
 # import experience buffer
 from tensorboardX import SummaryWriter
 from dqn_model import Net
 import time
+from agent import Agent
+from experience_buffer import ExperienceBuffer
+from config import PARAMS
+from config import calc_loss
+from config import ENV
 
-# Hyperparameters
-GAMMA = 0.99
-BATCH_SIZE = 32
-REPLAY_SIZE = 10_000
-REPLAY_START_SIZE = 10_000
-LEARNING_RATE = 0.001
-SYNC_TARGET_FRAMES = 1000
-EPSILON_DECAY_LAST_FRAME = 100_000
-EPSILON_START =  1.0
-EPSILON_FINAL = 0.02
-epsilon = EPSILON_START
-MEAN_REWARD_BOUND = 195 # TODO: adapt!
-#?
-Experience = collections.namedtuple('Experience', field_names=['state', 'action', 'reward', 'done', 'new_state'])
 
-class ExperienceBuffer:
-    def __init__(self, capacity):
-        self.buffer = collections.deque(maxlen=capacity)
+GAMMA = PARAMS[0]
+BATCH_SIZE = int(PARAMS[1])
+REPLAY_SIZE = int(PARAMS[2])
+REPLAY_START_SIZE = PARAMS[3]
+LEARNING_RATE = PARAMS[4]
+SYNC_TARGET_FRAMES = PARAMS[5]
+EPSILON_DECAY_LAST_FRAME = PARAMS[6]
+EPSILON_START =  PARAMS[7]
+EPSILON_FINAL = PARAMS[8]
+MEAN_REWARD_BOUND = PARAMS[9]
+epsilon= EPSILON_START
 
-    def __len__(self):
-        return len(self.buffer)
-
-    def append(self, experience):
-        self.buffer.append(experience)
-
-    def sample(self, batch_size):
-        indices = np.random.choice(len(self.buffer), batch_size, replace=False)
-        states, actions, rewards, dones, next_states = zip(*[self.buffer[idx] for idx in indices])
-        return np.array(states), np.array(actions), np.array(rewards, dtype=np.float32), \
-               np.array(dones, dtype=np.bool), np.array(next_states) #Change to bool from uint8
-
-class Agent:
-    def __init__(self, env, exp_buffer):
-        self.env = env
-        self.exp_buffer = exp_buffer
-        self._reset()
-
-    def _reset(self):
-        self.state = env.reset()
-        self.total_reward = 0.0
-    
-    def play_step(self, net, epsilon=0.0, device="cpu"):
-        done_reward = None
-        
-        if  np.random.random() < epsilon: 
-            action = env.action_space.sample()
-        else:            
-            state_v = torch.Tensor(self.state)
-            q_vals_v = net(state_v)
-            #_, act_v = torch.max(q_vals_v, dim=1) I changed dim to 0, correct? #TODO
-            _, act_v = torch.max(q_vals_v, dim=0) 
-            action = int(act_v.item())
-
-        # do step in the environment
-        new_state, reward, is_done, _ = self.env.step(action)
-        self.total_reward += reward
-
-        exp = Experience(self.state, action, reward, is_done, new_state)
-        self.exp_buffer.append(exp)
-        self.state = new_state
-        if is_done:
-            done_reward = self.total_reward
-            self._reset()
-        return done_reward
-    
-def calc_loss(batch, net, tgt_net, device="cpu"):
-    states, actions, rewards, dones, next_states = batch
-    states_v = torch.tensor(states).to(device).float()
-    next_states_v = torch.tensor(next_states).to(device).float()
-    actions_v = torch.tensor(actions).to(device)
-    rewards_v = torch.tensor(rewards).to(device)
-    done_mask = torch.from_numpy(dones).to(device) #torch.from_numpy() ByteTensor
-
-    state_action_values = net(states_v).gather(1, actions_v.unsqueeze(-1)).squeeze(-1)
-    next_state_values = tgt_net(next_states_v).max(1)[0]
-    next_state_values[done_mask] = 0.0
-    next_state_values = next_state_values.detach()
-
-    expected_state_action_values = next_state_values * GAMMA + rewards_v
-    return nn.MSELoss()(state_action_values, expected_state_action_values)
 
 # PyTorch setup
-parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
+parser = argparse.ArgumentParser(description='PyTorch CartPole Example')
 
-parser.add_argument('--batch-size', type=int, default=64, metavar='N', #?
-                    help='input batch size for training (default: 64)')
-parser.add_argument('--epochs', type=int, default=10, metavar='N', #?
-                    help='number of epochs to train (default: 10)')
 parser.add_argument('--lr', type=float, default=LEARNING_RATE, metavar='LR',
                     help='learning rate (default: 0.01)')
-parser.add_argument('--momentum', type=float, default=0.5, metavar='M', #?
-                    help='SGD momentum (default: 0.5)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
@@ -168,13 +101,11 @@ buffer = ExperienceBuffer(REPLAY_SIZE) # buffer from which to sample data
 # 
 # =============================================================================
 # Reinforcement learning environment
-env = gym.make("CartPole-v1")
+env = ENV
 agent = Agent(env, buffer) # TODO: make similar to Agent environment I had before
-
 
 # Write output statistics to tensorboard
 writer = SummaryWriter(comment = "-")
-
 
 # Initialize variables
 env.seed(args.seed)
@@ -193,7 +124,8 @@ best_mean_reward = None
 #     ep_reward = 0
 # =============================================================================
 #for episode in range(1): # Or is it epochs? 
-for t in range(1, 250_000):
+state = env.reset()
+for t in range(1, 100_000):
     frame_idx += 1
     epsilon = max(EPSILON_FINAL, EPSILON_START - frame_idx / EPSILON_DECAY_LAST_FRAME) # TODO: according to book. Looks wrong
 # =============================================================================
@@ -224,23 +156,18 @@ for t in range(1, 250_000):
         continue
     if frame_idx % SYNC_TARGET_FRAMES == 0:
         tgt_net.load_state_dict(net.state_dict())
-    # update cumulative reward. Where is this happening? Maybe in calc_loss
-#   running_reward = 0.05 * ep_reward + (1 - 0.05) * running_reward
+
+
     optimizer.zero_grad()
     batch = buffer.sample(BATCH_SIZE)
     loss_t  = calc_loss(batch, net, tgt_net, device = device)
     loss_t.backward()
     optimizer.step()
-            # Does:
-# =============================================================================
-#                 # forward + backward + optimize
-#         outputs = net(inputs)
-#         loss = criterion(outputs, labels) # M.Lapan uses hiw own function here
-#         loss.backward()
-#         optimizer.step()
-# =============================================================================
 writer.close()
 
-
+# LR *2: 141.83
+# LR *10: 155.1
+# LR *100: Quit, no progress shown
+# LR *5: (0.001*5): 167.4
 
 
