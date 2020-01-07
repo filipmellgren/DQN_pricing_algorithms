@@ -11,6 +11,7 @@ import gym
 import numpy as np
 import torch
 from torch import nn
+#from cont_bertrand import ContBertrand
 
 
 # Hyperparameters
@@ -29,7 +30,7 @@ nA = 15 # Number of actions
 
 PARAMS = np.array([GAMMA, BATCH_SIZE, REPLAY_SIZE, REPLAY_START_SIZE, 
                    LEARNING_RATE,SYNC_TARGET_FRAMES, EPSILON_DECAY_LAST_FRAME, 
-                   EPSILON_START, EPSILON_FINAL,  MEAN_REWARD_BOUND])
+                   EPSILON_START, EPSILON_FINAL,  MEAN_REWARD_BOUND, nA])
 
 C = 1
 A = 2
@@ -38,7 +39,8 @@ MU = 1/2
 min_price_tmp = 0
 price_range_tmp = 2
 
-ENV = gym.make("CartPole-v1")
+#ENV = gym.make("CartPole-v1")
+#ENV = ContBertrand()
 
     
 def calc_loss(batch, net, tgt_net, device="cpu"):

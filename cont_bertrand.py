@@ -33,11 +33,12 @@ MIN_PRICE = ECON_PARAMS[4]
 price_range = ECON_PARAMS[5]
 MAX_PRICE = MIN_PRICE + price_range
 NASH_PROFIT = ECON_PARAMS[6]
+NASH_PROFIT = NASH_PROFIT[0]
 MONOPOLY_PROFIT = ECON_PARAMS[7]
 
-nA = PARAMS[5].astype(int) # Number of unique prices
+nA = PARAMS[10].astype(int) # Number of unique prices
 
-class DiscrBertrand(gym.Env):
+class ContBertrand(gym.Env):
     metadata = {'render.modes': ['human']} #?
     
     # useful blog post:
@@ -75,12 +76,12 @@ class DiscrBertrand(gym.Env):
                 MIN_PRICE,
                 NASH_PROFIT*0.9,
                 MIN_PRICE])
-        
+        self.single_action_space = spaces.Discrete(nA) # Need this unconventional space to sample single agent actions from
         self.action_space = spaces.Discrete(nA*nA) # actually, number of combinations
-        self.observation_space = spaces.Box(low=low_state, high=high_state,
+        self.observation_space = spaces.Box(low_state, high_state,
                                             dtype=np.float32)
         self.seed()
-        self.reset()
+        self.reset(NASH_PROFIT, MIN_PRICE, MONOPOLY_PROFIT, MAX_PRICE)
         
         def to_a(act1, act2, nA):
             '''
@@ -129,9 +130,9 @@ class DiscrBertrand(gym.Env):
         # action made by the "meta agent", i.e. all market participants' joint action
         # Or, two actions packed into a vector
         action = np.array([action0, action1])
-        assert self.action_space.contains(action), "%r (%s) invalid"%(action, type(action))
+        #assert self.action_space.contains(action), "%r (%s) invalid"%(action, type(action)) # TODO: make this work (threw assertionerror for valid actions)
         #state = self.state
-        reward = profit_n(action0, action1)        
+        reward = profit_n(action, nA, C, AI, AJ, A0, MU, price_range, MIN_PRICE)      # action_n, nA, c, ai, aj, a0, mu, price_range, min_price   
         self.state = np.array([reward[0], action[0], reward[1], action[1]])
         done = bool(False) # TODO: how to define this? Might want to include a counter in the environment
         return self.state, reward, done, {}
