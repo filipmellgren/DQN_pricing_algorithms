@@ -11,6 +11,7 @@ import gym
 import numpy as np
 import torch
 from torch import nn
+import argparse
 #from cont_bertrand import ContBertrand
 
 
@@ -19,18 +20,19 @@ GAMMA = 0.99
 BATCH_SIZE = 32*2
 REPLAY_SIZE = 10_000
 REPLAY_START_SIZE = 10_000
-LEARNING_RATE = 0.001*5
+LEARNING_RATE = 0.001*5*10
 SYNC_TARGET_FRAMES = 1000
 EPSILON_DECAY_LAST_FRAME = 100_000 - 20000
 EPSILON_START =  1.0
 EPSILON_FINAL = 0.02
 MEAN_REWARD_BOUND = 195 # TODO: adapt!
-nA = 15 # Number of actions
+nA = 50 # Number of actions
+dO = 4 # Dimensionality of observations in each state 
 #?
 
 PARAMS = np.array([GAMMA, BATCH_SIZE, REPLAY_SIZE, REPLAY_START_SIZE, 
                    LEARNING_RATE,SYNC_TARGET_FRAMES, EPSILON_DECAY_LAST_FRAME, 
-                   EPSILON_START, EPSILON_FINAL,  MEAN_REWARD_BOUND, nA])
+                   EPSILON_START, EPSILON_FINAL,  MEAN_REWARD_BOUND, nA, dO])
 
 C = 1
 A = 2
@@ -42,7 +44,17 @@ price_range_tmp = 2
 #ENV = gym.make("CartPole-v1")
 #ENV = ContBertrand()
 
-    
+parser = argparse.ArgumentParser(description='Pricing algorithms')
+parser.add_argument('--no-cuda', action='store_true', default=False,
+                    help='disables CUDA training')
+parser.add_argument('--seed', type=int, default=1, metavar='S',
+                    help='random seed (default: 1)')
+parser.add_argument("--reward", type=float, default=MEAN_REWARD_BOUND,
+                        help="Mean reward boundary for stop of training, default=%.2f" % MEAN_REWARD_BOUND)
+args = parser.parse_args() # TODO: load just this guy for minimalism
+
+
+# Functions
 def calc_loss(batch, net, tgt_net, device="cpu"):
     states, actions, rewards, dones, next_states = batch
     states_v = torch.tensor(states).to(device).float()
@@ -116,7 +128,7 @@ ECON_PARAMS = np.array([C, A, A0, MU, MIN_PRICE, price_range,
                         NASH_PROFIT, MONOPOLY_PROFIT, MAX_PROFIT, MIN_PROFIT,
                         NREWS])
     
-def avg_profit_gain(avg_profit):
+def avg_profit_gain(avg_profit, nash_profit = NASH_PROFIT[0], monopoly_profit = MONOPOLY_PROFIT):
     '''
     avg_profit_gain() gives an index of collusion
     INPUT
@@ -124,7 +136,7 @@ def avg_profit_gain(avg_profit):
     OUTPUT
     apg.............normalised value of the scalar
     '''
-    apg = (avg_profit - NASH_PROFIT) / (MONOPOLY_PROFIT - NASH_PROFIT)
+    apg = (avg_profit - nash_profit) / (monopoly_profit - nash_profit)
     return apg
 
 def rew_to_int(reward):
@@ -138,4 +150,23 @@ def to_s(act, reward):
     '''
     return(act*NREWS + reward)
 
+def profit_n(action_n, nA = nA, c = C, ai = A, aj = A, a0 = A0, mu = MU, price_range = price_range, min_price = MIN_PRICE):
+    '''
+    profit_n gives profits in the market after taking prices as argument
+    INPUT
+    action_n.....an np.array([]) containing two prices
+    OUTPUT
+    profit.......profit, an np.array([]) containing profits
+    '''
+    a = np.array([ai, aj])
+    a_not = np.flip(a) # to obtain the other firm's a
+      
+    p = (price_range * action_n/nA) + min_price # minus 1 ? was a comment I left in the other file
+    p_not = np.flip(p) # to obtain the other firm's p
+    num = np.exp((a - p)/mu)
+    denom = np.exp((a - p)/(mu)) + np.exp((a_not - p_not)/(mu)) + np.exp(a0/mu)
+    quantity_n = num / denom
+          
+    profit = quantity_n * (p-c)
+    return(profit)
 
