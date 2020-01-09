@@ -45,6 +45,8 @@ import torch.nn as nn
 #         return self.fc(conv_out)
 # =============================================================================
 # TODO: simplify the net
+# TOOD: understand it
+# feedforward fullly connected with ReLus according to Goodfellow (good thing it already had reLus)
 
 class Net(nn.Module):
     def __init__(self, input_dim, output_dim):

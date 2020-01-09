@@ -60,24 +60,30 @@ class Agent1:
     # TODO: must have its own Q-table,
     # must also make it observe only parts of it (max a slice of it, i.e. condition on variables it sees?)
     # First, value updating may have to happen here instead of WHERE
-    def __init__(self, env, exp_buffer):
+    def __init__(self, env, exp_buffer, net, tgt_net, optimizer):
         self.env = env
         self.exp_buffer = exp_buffer
+        self.net = net
+        self.tgt_net = tgt_net
+        self.optimizer = optimizer
         self.reset()
+        
      #   self.values = collections.defaultdict(float) # The Q-table?! #TODO: maybe not necessary given initial_Q()
     def reset(self): #, nS, nA, gamma, c, ai, aj, a0, mu, price_range, min_price):
         self.best_action = 0
         self.length_opt_act = 0
+        self.total_rewards = []
+        self.best_mean_reward = None
        # self.initial_Q(nS, nA, gamma, c, ai, aj, a0, mu, price_range, min_price)
-        self.state = self.env.reset(NASH_PROFIT, MIN_PRICE, MONOPOLY_PROFIT, MAX_PRICE)
+        self.state = self.env.reset(NASH_PROFIT, MIN_PRICE, MONOPOLY_PROFIT, MAX_PRICE) #?
         return
     
-    def act(self, net, eps = 0.0, device = "cpu"):
+    def act(self, net, state,eps, device = "cpu"):
         done_reward = None
         if np.random.uniform() < eps: # eps goes from 0 to 1 over iterations
             action = self.env.single_action_space.sample()
         else:
-            state_v = torch.Tensor(self.state)
+            state_v = torch.Tensor(state)
             q_vals_v = net(state_v)
             #_, action = self.max_value_action()
             _, act_v = torch.max(q_vals_v, dim=0) # TODO: correct diumension?
