@@ -14,7 +14,7 @@ Created on Sat Dec 28 14:47:03 2019
 !git add dqn_model.py
 !git add agent.py
 !git add experience_buffer.py
-!git commit -m "This version runs w.o. problems. From here, I can tidy it up and ensure everything is 100% correct"
+!git commit -m "Adding the other files as well"
 !git remote add origin https://github.com/filipmellgren/DQN_pricing_algorithms.git
 !git push -u origin master
 
@@ -116,22 +116,23 @@ ts = time.time()
 # Training – Main loop
 # TODO: repeat training loop multiple times for main results
 #state = env.reset()
-BETA = 1.7*10**-5
+BETA = 10**-5 # TODO: import this from config
 s_next = np.array([0,0,0,0]) # TODO: this is a bit too hacky. reset env
-for t in range(1, 250_000):
+for t in range(1, 200_000):
     frame_idx += 1
    # epsilon = max(EPSILON_FINAL, EPSILON_START - frame_idx / EPSILON_DECAY_LAST_FRAME) # TODO: according to book. Looks wrong
     epsilon = np.exp(-BETA*frame_idx)
     
     s = s_next
     # TODO: have two independent epsilons
-    action0 = agent0.act(net0, s[0:2], epsilon)
-    action1 = agent1.act(net1, s[2:5], epsilon)
+    action0 = agent0.act(net0, s[np.array([0,2])], epsilon)
+    action1 = agent1.act(net1, s[np.array([0,2])], epsilon)
+    action1 = 5 # TODO: temporary
     s_next, reward_n, done, _ = env.step(action0, action1) # TODO somehow new state is 4 dim
         
-    exp0 = Experience(s_next[0:2], action0, reward_n[0], done, s[0:2])
+    exp0 = Experience(s_next[np.array([0,2])], action0, reward_n[0], done, s[np.array([0,2])])
     agent0.exp_buffer.append(exp0)
-    exp1 = Experience(s_next[2:5], action1, reward_n[1], done, s[2:5])
+    exp1 = Experience(s_next[np.array([0,2])], action1, reward_n[1], done, s[np.array([0,2])])
     agent1.exp_buffer.append(exp1)
     
     
@@ -143,11 +144,11 @@ for t in range(1, 250_000):
             speed = (frame_idx - ts_frame) / (time.time() - ts)
             ts_frame  = frame_idx
             ts = time.time()
-            mean_reward = np.mean(agent.total_rewards[-100:])
+            mean_reward = np.mean(agent.total_rewards[-100:]) # TODO: this will probably have to be longer, otherwise it only learns based on noise
             apg = avg_profit_gain(reward)
             #writer.add_scalar("reward_100", mean_reward, frame_idx)
             writer.add_scalar(str(a), apg, frame_idx)
-            if agent.best_mean_reward is None or agent.best_mean_reward < mean_reward:
+            if agent.best_mean_reward is None or agent.best_mean_reward < mean_reward: # What does this step do? 
                 torch.save(agent.net.state_dict(),  "-best.dat")
                 if agent.best_mean_reward is not None:
                     print("Best mean reward updated, %.3f: %.3f -> %.3f, model saved" % (a, agent.best_mean_reward, mean_reward))
@@ -157,17 +158,18 @@ for t in range(1, 250_000):
                 break # TODO: does it break both loops or just one?
             a += 1
             
-    if len(agent0.exp_buffer) < REPLAY_START_SIZE: # TODO: this guy never gets appended -.-
+    if len(agent0.exp_buffer) < REPLAY_START_SIZE: 
         continue
 
     for agent in [agent0, agent1]:
-        if frame_idx % SYNC_TARGET_FRAMES == 0:
+        if frame_idx % SYNC_TARGET_FRAMES == 0: # Update target network
             agent.tgt_net.load_state_dict(agent.net.state_dict())
         batch = agent.exp_buffer.sample(BATCH_SIZE)
         agent.optimizer.zero_grad()
         loss_t = calc_loss(batch, agent.net, agent.tgt_net, device = device) # does the agent ever value update? Where?
         loss_t.backward()
         agent.optimizer.step()
+    writer.add_scalar(str(a) + "loss", loss_t, frame_idx)
     
 writer.close()
 # TODO: reset agents
@@ -177,5 +179,12 @@ writer.close()
 # Lead to non convergence. Increase learnign rate
 
 
-# 08:56, learning rate 10 times as large -> 09:39
-# changed # actions to 50 09:40 -> 10:22
+# 08:56, learning rate 10 times as large -> 09:39 (0.05)
+# changed # actions to 50 09:40 -> 10:22. Requires more iterations but also came with less noise
+# beta 0.5 * 10**-5, alpha =.05, gamma 0.95 (from 0.99), batch size 128 (from 64) 10:44 -> 13:14. Stays at levels that are too low
+
+# TODO: play agent in stationary environment first and let it solve this problem.
+    # Check profit function
+    # Check the flow
+    # Update how nets are saved
+# TODO: Let synchronizatin be closer related to learnng rate

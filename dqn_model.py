@@ -51,17 +51,19 @@ import torch.nn as nn
 class Net(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(Net, self).__init__()
-        self.linear1 = nn.Linear(input_dim, 16)
-        self.linear2 = nn.Linear(16, 32)
-        self.linear3 = nn.Linear(32, 32)
-        self.linear4 = nn.Linear(32, output_dim)
+        self.hidden = nn.Linear(input_dim, 8) # Hidden unit
+       # self.linear2 = nn.Linear(16, 32) # Hidden unit
+        self.output = nn.Linear(8, output_dim) # Output layer
+      #  self.linear4 = nn.Linear(32, output_dim)
 
 
     def forward(self, x):
-        x = F.relu(self.linear1(x))
-        x = F.relu(self.linear2(x))
-        x = F.relu(self.linear3(x))
-        return self.linear4(x)
+        x = self.hidden(x)
+        x = F.relu(x)
+        x = self.output(x)
+        #x = F.relu(self.linear2(x))
+        #x = F.relu(self.linear3(x))
+        return x
 
 
 

@@ -16,17 +16,17 @@ import argparse
 
 
 # Hyperparameters
-GAMMA = 0.99
-BATCH_SIZE = 32*2
+GAMMA = 0.95
+BATCH_SIZE = 256
 REPLAY_SIZE = 10_000
 REPLAY_START_SIZE = 10_000
-LEARNING_RATE = 0.001*5*10
-SYNC_TARGET_FRAMES = 1000
+LEARNING_RATE = 0.1
+SYNC_TARGET_FRAMES = 500 # originally 10_000
 EPSILON_DECAY_LAST_FRAME = 100_000 - 20000
 EPSILON_START =  1.0
 EPSILON_FINAL = 0.02
 MEAN_REWARD_BOUND = 195 # TODO: adapt!
-nA = 50 # Number of actions
+nA = 20 # Number of actions
 dO = 4 # Dimensionality of observations in each state 
 #?
 
@@ -108,7 +108,7 @@ best_response = np.vstack((best_response, np.arange(nA))).transpose()
 Nash = best_response[:,0] == best_response[:,1]
 
 NASH_ACTION = np.argmax(Nash)
-NASH_PRICE = (price_range_tmp * NASH_ACTION/(nA-1)) + min_price_tmp # minus 1?
+NASH_PRICE = (price_range_tmp * NASH_ACTION/(nA)) + min_price_tmp # minus 1?
 NASH_PROFIT = profit_n(np.array((NASH_ACTION, NASH_ACTION)), nA, C, A, A, A0, MU, price_range_tmp, min_price_tmp)
 MIN_PROFIT = np.min(profits)
 MAX_PROFIT = np.max(profits)

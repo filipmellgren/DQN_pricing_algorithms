@@ -60,6 +60,7 @@ class Agent1:
     # TODO: must have its own Q-table,
     # must also make it observe only parts of it (max a slice of it, i.e. condition on variables it sees?)
     # First, value updating may have to happen here instead of WHERE
+    # TODO: add attributes such as best mean reward
     def __init__(self, env, exp_buffer, net, tgt_net, optimizer):
         self.env = env
         self.exp_buffer = exp_buffer

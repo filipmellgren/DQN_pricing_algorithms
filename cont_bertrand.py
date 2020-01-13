@@ -66,15 +66,15 @@ class ContBertrand(gym.Env):
         
         # States are defined as the profits and prices of both agents
         high_state = np.array([
-            MONOPOLY_PROFIT*1.1,
+            MONOPOLY_PROFIT*1.5,
             MAX_PRICE,
-            MONOPOLY_PROFIT*1.1,
+            MONOPOLY_PROFIT*1.5,
             MAX_PRICE])
     
         low_state = np.array([
-                NASH_PROFIT*0.9,
+                0,
                 MIN_PRICE,
-                NASH_PROFIT*0.9,
+                0,
                 MIN_PRICE])
         self.single_action_space = spaces.Discrete(nA) # Need this unconventional space to sample single agent actions from
         self.action_space = spaces.Discrete(nA*nA) # actually, number of combinations
@@ -132,7 +132,7 @@ class ContBertrand(gym.Env):
         action = np.array([action0, action1])
         #assert self.action_space.contains(action), "%r (%s) invalid"%(action, type(action)) # TODO: make this work (threw assertionerror for valid actions)
         #state = self.state
-        reward = profit_n(action, nA, C, AI, AJ, A0, MU, price_range, MIN_PRICE)      # action_n, nA, c, ai, aj, a0, mu, price_range, min_price   
+        reward = profit_n(action)
         self.state = np.array([reward[0], action[0], reward[1], action[1]])
         done = bool(False) # TODO: how to define this? Might want to include a counter in the environment
         return self.state, reward, done, {}
