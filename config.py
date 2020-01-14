@@ -13,26 +13,26 @@ import torch
 from torch import nn
 import argparse
 #from cont_bertrand import ContBertrand
-
+# TODO: Monopoly price might be wrong; Should be set when there is no competitor
 
 # Hyperparameters
-GAMMA = 0.95
-BATCH_SIZE = 256
-REPLAY_SIZE = 10_000
-REPLAY_START_SIZE = 10_000
-LEARNING_RATE = 0.1
-SYNC_TARGET_FRAMES = 500 # originally 10_000
-EPSILON_DECAY_LAST_FRAME = 100_000 - 20000
+GAMMA = 0.99
+BATCH_SIZE = 1000
+REPLAY_SIZE = 25_000
+REPLAY_START_SIZE = 25_000
+LEARNING_RATE = 0.01
+SYNC_TARGET_FRAMES = 50_000
+EPSILON_DECAY_LAST_FRAME = 400_000
 EPSILON_START =  1.0
-EPSILON_FINAL = 0.02
-MEAN_REWARD_BOUND = 195 # TODO: adapt!
-nA = 20 # Number of actions
+EPSILON_FINAL = 0.01
+BETA =  10**-5 # should be 5*10**-6, but requires 1 000 000 iterations
+nA = 10 # Number of actions
 dO = 4 # Dimensionality of observations in each state 
-#?
+FRAMES = 500_000
 
 PARAMS = np.array([GAMMA, BATCH_SIZE, REPLAY_SIZE, REPLAY_START_SIZE, 
                    LEARNING_RATE,SYNC_TARGET_FRAMES, EPSILON_DECAY_LAST_FRAME, 
-                   EPSILON_START, EPSILON_FINAL,  MEAN_REWARD_BOUND, nA, dO])
+                   EPSILON_START, EPSILON_FINAL,  BETA, nA, dO, FRAMES])
 
 C = 1
 A = 2
@@ -49,8 +49,7 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
-parser.add_argument("--reward", type=float, default=MEAN_REWARD_BOUND,
-                        help="Mean reward boundary for stop of training, default=%.2f" % MEAN_REWARD_BOUND)
+
 args = parser.parse_args() # TODO: load just this guy for minimalism
 
 
@@ -108,7 +107,7 @@ best_response = np.vstack((best_response, np.arange(nA))).transpose()
 Nash = best_response[:,0] == best_response[:,1]
 
 NASH_ACTION = np.argmax(Nash)
-NASH_PRICE = (price_range_tmp * NASH_ACTION/(nA)) + min_price_tmp # minus 1?
+NASH_PRICE = (price_range_tmp * NASH_ACTION/(nA-1)) + min_price_tmp # minus 1?
 NASH_PROFIT = profit_n(np.array((NASH_ACTION, NASH_ACTION)), nA, C, A, A, A0, MU, price_range_tmp, min_price_tmp)
 MIN_PROFIT = np.min(profits)
 MAX_PROFIT = np.max(profits)
@@ -161,7 +160,7 @@ def profit_n(action_n, nA = nA, c = C, ai = A, aj = A, a0 = A0, mu = MU, price_r
     a = np.array([ai, aj])
     a_not = np.flip(a) # to obtain the other firm's a
       
-    p = (price_range * action_n/nA) + min_price # minus 1 ? was a comment I left in the other file
+    p = (price_range * action_n/(nA-1)) + min_price 
     p_not = np.flip(p) # to obtain the other firm's p
     num = np.exp((a - p)/mu)
     denom = np.exp((a - p)/(mu)) + np.exp((a_not - p_not)/(mu)) + np.exp(a0/mu)

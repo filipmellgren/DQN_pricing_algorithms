@@ -14,7 +14,7 @@ Created on Sat Dec 28 14:47:03 2019
 !git add dqn_model.py
 !git add agent.py
 !git add experience_buffer.py
-!git commit -m "Adding the other files as well"
+!git commit -m "Beginning to change things to fix convergence"
 !git remote add origin https://github.com/filipmellgren/DQN_pricing_algorithms.git
 !git push -u origin master
 
@@ -40,6 +40,8 @@ in the browser
 # I know that adding many actions don't increase the time by much. But for now, it results in wrong numbers. 
 # Wacky transformation of price might explain why I get weird results
 
+# TODO: another idea in foerster is to simply use a shorter, more recent experience replay buffers
+
 import torch
 from torch import nn, optim
 import numpy as np
@@ -52,7 +54,6 @@ from config import PARAMS
 from config import calc_loss
 from cont_bertrand import ContBertrand
 from config import args #args includes a few arguments used throughout. TODO: should all arguments be passed via this guy?
-from config import ECON_PARAMS
 from config import avg_profit_gain
 ENV = ContBertrand()
 import collections
@@ -66,16 +67,12 @@ REPLAY_START_SIZE = PARAMS[3]
 LEARNING_RATE = PARAMS[4]
 SYNC_TARGET_FRAMES = PARAMS[5]
 EPSILON_DECAY_LAST_FRAME = PARAMS[6]
-EPSILON_START =  PARAMS[7]
+EPSILON_START = PARAMS[7]
 EPSILON_FINAL = PARAMS[8]
-MEAN_REWARD_BOUND = PARAMS[9]
-epsilon= EPSILON_START
+BETA = PARAMS[9]
 nA = PARAMS[10].astype(int)
 dO = PARAMS[11].astype(int)
-
-NASH_PROFIT = ECON_PARAMS[6]
-NASH_PROFIT = NASH_PROFIT[0] # 0.11278
-MONOPOLY_PROFIT = ECON_PARAMS[7] # 0.11576
+FRAMES = PARAMS[12]
 
 # PyTorch setup
 use_cuda = torch.cuda.is_available() and not args.no_cuda
@@ -87,16 +84,16 @@ if use_cuda:
   torch.cuda.manual_seed(args.seed)
 
 # Neural network model:
-net0 = Net(2,nA).to(device) # might need layers to depend on sizes of env: env.observation_space.shape, env.action_space.n).to(device)
+net0 = Net(4,nA).to(device)
 print(net0)
-net1 = Net(2,nA).to(device)
-tgt_net0 = Net(2,nA).to(device) # Prediction target. TODO: do I maybe want just one target to speed up training? Might work because of symmetry and that there might be an objective functon
-tgt_net1 = Net(2,nA).to(device)
+net1 = Net(4,nA).to(device)
+tgt_net0 = Net(4,nA).to(device) # Prediction target. TODO: do I maybe want just one target to speed up training? Might work because of symmetry and that there might be an objective functon
+tgt_net1 = Net(4,nA).to(device)
 criterion = nn.MSELoss()
 optimizer0 = optim.Adam(net0.parameters(), lr=LEARNING_RATE)
 optimizer1 = optim.Adam(net1.parameters(), lr=LEARNING_RATE)
-buffer0 = ExperienceBuffer(REPLAY_SIZE) # buffer from which to sample data
-buffer1 = ExperienceBuffer(REPLAY_SIZE) # buffer from which to sample data
+buffer0 = ExperienceBuffer(REPLAY_SIZE)
+buffer1 = ExperienceBuffer(REPLAY_SIZE)
 
 # Reinforcement learning environment
 env = ENV
@@ -113,49 +110,50 @@ torch.manual_seed(args.seed)
 frame_idx = 0
 ts_frame = 0
 ts = time.time()
+
+# TODO: fit net to random play to initialize an approximation to the Q-values
+
 # Training – Main loop
 # TODO: repeat training loop multiple times for main results
-#state = env.reset()
-BETA = 10**-5 # TODO: import this from config
-s_next = np.array([0,0,0,0]) # TODO: this is a bit too hacky. reset env
-for t in range(1, 200_000):
+s_next = env.reset()
+epsilon = EPSILON_START
+
+for t in range(1, int(FRAMES)):
     frame_idx += 1
-   # epsilon = max(EPSILON_FINAL, EPSILON_START - frame_idx / EPSILON_DECAY_LAST_FRAME) # TODO: according to book. Looks wrong
-    epsilon = np.exp(-BETA*frame_idx)
-    
+    #epsilon = np.exp(-BETA*frame_idx) + 0.01
+    epsilon = max(EPSILON_FINAL, EPSILON_START - frame_idx / EPSILON_DECAY_LAST_FRAME)
     s = s_next
-    # TODO: have two independent epsilons
-    action0 = agent0.act(net0, s[np.array([0,2])], epsilon)
-    action1 = agent1.act(net1, s[np.array([0,2])], epsilon)
-    action1 = 5 # TODO: temporary
-    s_next, reward_n, done, _ = env.step(action0, action1) # TODO somehow new state is 4 dim
+    action0 = agent0.act(net0, s[np.array([0,2,4,5])], epsilon)
+    action1 = agent1.act(net1, s[np.array([0,2,4,5])], epsilon)
+    s_next, reward_n, done, _ = env.step(action0, action1, epsilon, frame_idx)
         
-    exp0 = Experience(s_next[np.array([0,2])], action0, reward_n[0], done, s[np.array([0,2])])
+    exp0 = Experience(s_next[np.array([0,2,4,5])], action0, reward_n[0], done, s[np.array([0,2,4,5])])
     agent0.exp_buffer.append(exp0)
-    exp1 = Experience(s_next[np.array([0,2])], action1, reward_n[1], done, s[np.array([0,2])])
+    exp1 = Experience(s_next[np.array([0,2,4,5])], action1, reward_n[1], done, s[np.array([0,2,4,5])])
     agent1.exp_buffer.append(exp1)
     
-    
-    if reward_n is not None: # TODO: now I'm doing this for just one agent
+    if reward_n is not None:
         a = 0
         for agent in [agent0, agent1]:
             reward = reward_n[a]
-            agent.total_rewards.append(reward)
-            speed = (frame_idx - ts_frame) / (time.time() - ts)
-            ts_frame  = frame_idx
-            ts = time.time()
-            mean_reward = np.mean(agent.total_rewards[-100:]) # TODO: this will probably have to be longer, otherwise it only learns based on noise
-            apg = avg_profit_gain(reward)
-            #writer.add_scalar("reward_100", mean_reward, frame_idx)
-            writer.add_scalar(str(a), apg, frame_idx)
-            if agent.best_mean_reward is None or agent.best_mean_reward < mean_reward: # What does this step do? 
-                torch.save(agent.net.state_dict(),  "-best.dat")
-                if agent.best_mean_reward is not None:
-                    print("Best mean reward updated, %.3f: %.3f -> %.3f, model saved" % (a, agent.best_mean_reward, mean_reward))
-                agent.best_mean_reward = mean_reward
-            if mean_reward > args.reward: # TODO: this is where I check for the convergence criterion
+            pg = avg_profit_gain(reward)
+            #agent.total_rewards.append(reward)
+            agent.total_pg.append(pg)
+            #speed = (frame_idx - ts_frame) / (time.time() - ts)
+            #ts_frame  = frame_idx
+            #ts = time.time()
+            
+            mean_pg = np.mean(agent.total_pg[-10000:])
+        #writer.add_scalar("reward_100", mean_reward, frame_idx)
+            writer.add_scalar(str(a), mean_pg, frame_idx)
+            if agent.best_mean_pg is None or agent.best_mean_pg < mean_pg or frame_idx % (SYNC_TARGET_FRAMES) == 0:
+                torch.save(agent.net.state_dict(),  "-best.dat")  
+                if agent.best_mean_pg is not None:
+                    print("Best mean profit gain updated, %.1f: %.3f -> %.3f, model saved. Iteration: %.1f" % (a, agent.best_mean_pg, mean_pg, frame_idx))
+                agent.best_mean_pg = mean_pg
+            if agent.length_opt_act > 25000: # TODO: Don't hardcode
                 print("Solved in %d frames!" % frame_idx)
-                break # TODO: does it break both loops or just one?
+                break
             a += 1
             
     if len(agent0.exp_buffer) < REPLAY_START_SIZE: 
@@ -173,18 +171,13 @@ for t in range(1, 200_000):
     
 writer.close()
 # TODO: reset agents
-# TODO: change mean_reward to avg_profit_gain AND duration of same optimal action
-# 20:25, started a 500k iteration step long journey
-# Had ended 22:23
-# Lead to non convergence. Increase learnign rate
-
-
-# 08:56, learning rate 10 times as large -> 09:39 (0.05)
-# changed # actions to 50 09:40 -> 10:22. Requires more iterations but also came with less noise
-# beta 0.5 * 10**-5, alpha =.05, gamma 0.95 (from 0.99), batch size 128 (from 64) 10:44 -> 13:14. Stays at levels that are too low
-
 # TODO: play agent in stationary environment first and let it solve this problem.
     # Check profit function
     # Check the flow
     # Update how nets are saved
 # TODO: Let synchronizatin be closer related to learnng rate
+# TODO: fewer actions
+# TODO: how often to sync network?
+# TODO: fix monopoly price and profit
+# TODO: sequential actions
+# TODO: does it even know that rewards should be as high as possible?

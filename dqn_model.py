@@ -13,58 +13,21 @@ This file defines a neural network
 import torch.nn.functional as F
 import torch.nn as nn
 
-
-
-# =============================================================================
-# class DQN(nn.Module):
-#     def __init__(self, input_shape, n_actions):
-#         super(DQN, self).__init__()
-# 
-#         self.conv = nn.Sequential(
-#             nn.Conv2d(input_shape[0], 32, kernel_size=8, stride=4),
-#             nn.ReLU(),
-#             nn.Conv2d(32, 64, kernel_size=4, stride=2),
-#             nn.ReLU()
-#         )
-#         
-#         conv_out_size = self._get_conv_out(input_shape)
-#         self.fc = nn.Sequential(
-#             nn.Linear(conv_out_size, 512),
-#             nn.ReLU(),
-#             nn.Linear(512, n_actions)
-#         )
-# 
-#     def _get_conv_out(self, shape):
-#         print(torch.zeros(1, *shape))
-#         o = self.conv(torch.zeros(1, *shape))
-# 
-#         return int(np.prod(o.size()))
-# 
-#     def forward(self, x):
-#         conv_out = self.conv(x).view(x.size()[0], -1)
-#         return self.fc(conv_out)
-# =============================================================================
-# TODO: simplify the net
-# TOOD: understand it
 # feedforward fullly connected with ReLus according to Goodfellow (good thing it already had reLus)
+# Net same as in: apple gatherer/wolfpack paper: https://arxiv.org/pdf/1702.03037.pdf?utm_source=datafloq&utm_medium=ref&utm_campaign=datafloq
 
 class Net(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(Net, self).__init__()
-        self.hidden = nn.Linear(input_dim, 8) # Hidden unit
-       # self.linear2 = nn.Linear(16, 32) # Hidden unit
-        self.output = nn.Linear(8, output_dim) # Output layer
-      #  self.linear4 = nn.Linear(32, output_dim)
-
+        self.hidden = nn.Linear(input_dim, 32) # Hidden layer
+        self.hidden2 = nn.Linear(32, 32) # Hidden layer
+        self.output = nn.Linear(32, output_dim) # Output layer
 
     def forward(self, x):
         x = self.hidden(x)
         x = F.relu(x)
+        x = self.hidden2(x)
+        x = F.relu(x)
         x = self.output(x)
-        #x = F.relu(self.linear2(x))
-        #x = F.relu(self.linear3(x))
         return x
-
-
-
-
+    

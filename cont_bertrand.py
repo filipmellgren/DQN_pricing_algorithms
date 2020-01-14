@@ -37,6 +37,7 @@ NASH_PROFIT = NASH_PROFIT[0]
 MONOPOLY_PROFIT = ECON_PARAMS[7]
 
 nA = PARAMS[10].astype(int) # Number of unique prices
+FRAMES = PARAMS[12]
 
 class ContBertrand(gym.Env):
     metadata = {'render.modes': ['human']} #?
@@ -69,19 +70,24 @@ class ContBertrand(gym.Env):
             MONOPOLY_PROFIT*1.5,
             MAX_PRICE,
             MONOPOLY_PROFIT*1.5,
-            MAX_PRICE])
+            MAX_PRICE,
+            1,
+            FRAMES])
     
         low_state = np.array([
                 0,
                 MIN_PRICE,
                 0,
-                MIN_PRICE])
+                MIN_PRICE,
+                0,
+                0])
+    
         self.single_action_space = spaces.Discrete(nA) # Need this unconventional space to sample single agent actions from
         self.action_space = spaces.Discrete(nA*nA) # actually, number of combinations
         self.observation_space = spaces.Box(low_state, high_state,
                                             dtype=np.float32)
         self.seed()
-        self.reset(NASH_PROFIT, MIN_PRICE, MONOPOLY_PROFIT, MAX_PRICE)
+        self.reset()
         
         def to_a(act1, act2, nA):
             '''
@@ -126,22 +132,24 @@ class ContBertrand(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def step(self, action0, action1):
+    def step(self, action0, action1, eps, frame):
         # action made by the "meta agent", i.e. all market participants' joint action
         # Or, two actions packed into a vector
         action = np.array([action0, action1])
         #assert self.action_space.contains(action), "%r (%s) invalid"%(action, type(action)) # TODO: make this work (threw assertionerror for valid actions)
         #state = self.state
         reward = profit_n(action)
-        self.state = np.array([reward[0], action[0], reward[1], action[1]])
+        self.state = np.array([reward[0], action[0], reward[1], action[1], eps, frame])
         done = bool(False) # TODO: how to define this? Might want to include a counter in the environment
         return self.state, reward, done, {}
     
-    def reset(self, nash_profit, nash_price, monopoly_profit, monopoly_price):
+    def reset(self, nash_profit = NASH_PROFIT, nash_price = MIN_PRICE, monopoly_profit = MONOPOLY_PROFIT, monopoly_price = MAX_PRICE):
         profit0 = self.np_random.uniform(low=nash_profit, high=monopoly_profit)
         price0 = self.np_random.uniform(low=nash_price, high=monopoly_price)
         profit1 = self.np_random.uniform(low=nash_profit, high=monopoly_profit)
         price1 = self.np_random.uniform(low=nash_price, high=monopoly_price)
-        self.state = np.array([profit0, price0, profit1, price1]) 
+        eps = 1
+        idx = 0
+        self.state = np.array([profit0, price0, profit1, price1, eps, idx]) 
         return np.array(self.state)
 
