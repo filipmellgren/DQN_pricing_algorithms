@@ -7,20 +7,10 @@ Created on Sat Dec 28 15:05:24 2019
 
 Agent
 """
-
 import numpy as np
 import torch
-import collections
 from cont_bertrand import ContBertrand
 env = ContBertrand()
-from config import ECON_PARAMS
-Experience = collections.namedtuple('Experience', field_names=['state', 'action', 'reward', 'done', 'new_state'])
-MIN_PRICE = ECON_PARAMS[4]
-price_range = ECON_PARAMS[5]
-MAX_PRICE = MIN_PRICE + price_range
-NASH_PROFIT = ECON_PARAMS[6]
-NASH_PROFIT = NASH_PROFIT[0]
-MONOPOLY_PROFIT = ECON_PARAMS[7]
 
 
 class Agent1:

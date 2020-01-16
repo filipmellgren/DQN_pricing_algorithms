@@ -14,30 +14,20 @@ from gym import spaces
 from gym.utils import seeding
 import numpy as np
 
-from config import ECON_PARAMS
-from config import PARAMS
+from config import HYPERPARAMS
+from config import ECONPARAMS
 from config import profit_n
+params = HYPERPARAMS['full_obs_NB']
+eparams = ECONPARAMS['base_case']
 
-C = ECON_PARAMS[0]
-AI = ECON_PARAMS[1]
-AJ = ECON_PARAMS[1]
-A0 = ECON_PARAMS[2]
-MU = ECON_PARAMS[3]
-MIN_PRICE = ECON_PARAMS[4]
-PRICE_RANGE = ECON_PARAMS[5]
-MAX_REWARD = ECON_PARAMS[8]
-MIN_REWARD = ECON_PARAMS[9]
-NREWS = ECON_PARAMS[10]
 
-MIN_PRICE = ECON_PARAMS[4]
-price_range = ECON_PARAMS[5]
-MAX_PRICE = MIN_PRICE + price_range
-NASH_PROFIT = ECON_PARAMS[6]
-NASH_PROFIT = NASH_PROFIT[0]
-MONOPOLY_PROFIT = ECON_PARAMS[7]
+MIN_PRICE = eparams['min_price']
+MAX_PRICE = eparams['max_price']
+NASH_PROFIT = eparams['nash_profit']
+MONOPOLY_PROFIT = eparams['monopoly_profit']
 
-nA = PARAMS[10].astype(int) # Number of unique prices
-FRAMES = PARAMS[12]
+nA = params['nA']
+FRAMES = params['frames']
 
 class ContBertrand(gym.Env):
     metadata = {'render.modes': ['human']} #?

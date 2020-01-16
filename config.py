@@ -12,8 +12,7 @@ import numpy as np
 import torch
 from torch import nn
 import argparse
-#from cont_bertrand import ContBertrand
-# TODO: Monopoly price might be wrong; Should be set when there is no competitor
+from calc_nash_monopoly import act_to_price, demand, profit, nash_action, monopoly_action 
 
 # Hyperparameters
 HYPERPARAMS = {
@@ -27,35 +26,44 @@ HYPERPARAMS = {
                 'epsilon_decay_last_frame': 400_000,
                 'epsilon_start': 1,
                 'epsilon_final': 0.02,
-                'nA': 20,
-                'dO': 4,
-                'frames': 500_000
+                'nA': 10,
+                'dO': 6,
+                'dO_a': 4,
+                'frames': 5_000
                 },
         }
-GAMMA = 0.99
-BATCH_SIZE = 1000 #From 1000, increase further
-REPLAY_SIZE = 25_000
-REPLAY_START_SIZE = 25_000
-LEARNING_RATE = 0.01 # from 0.01, increase to 0.02
-SYNC_TARGET_FRAMES = 50_000
-EPSILON_DECAY_LAST_FRAME = 400_000
-EPSILON_START =  1.0
-EPSILON_FINAL = 0.01
-BETA =  10**-5 # should be 5*10**-6, but requires 1 000 000 iterations
-nA = 4 # Number of actions
-dO = 4 # Dimensionality of observations in each state 
-FRAMES = 500_000
 
-PARAMS = np.array([GAMMA, BATCH_SIZE, REPLAY_SIZE, REPLAY_START_SIZE, 
-                   LEARNING_RATE,SYNC_TARGET_FRAMES, EPSILON_DECAY_LAST_FRAME, 
-                   EPSILON_START, EPSILON_FINAL,  BETA, nA, dO, FRAMES])
+nA = HYPERPARAMS['full_obs_NB']['nA']
+GAMMA = HYPERPARAMS['full_obs_NB']['gamma']
 
+# Economic parameters
 C = 1
 A = 2
 A0 = 1
 MU = 1/2
-min_price_tmp = 0
-price_range_tmp = 2
+
+NASH_ACTION = nash_action(nA, A0, A, A, MU)
+NASH_PRICE = act_to_price(NASH_ACTION)
+NASH_PROFIT = profit(NASH_PRICE, A0, A, A, MU)
+
+MONOPOLY_ACTION = monopoly_action(nA, A0, A, A, MU)
+MONOPOLY_PRICE = act_to_price(MONOPOLY_ACTION)
+MONOPOLY_PROFIT = profit(MONOPOLY_PRICE, A0, A, A, MU) # Sum and divide by two?
+
+# MAX AND MIN
+MIN_PRICE = 0.9 * NASH_PRICE
+MAX_PRICE = 1.1 * MONOPOLY_PRICE
+
+ECONPARAMS = {
+        'base_case': {
+                'c': C,
+                'a':A,
+                'a0': A0,
+                'mu': MU,
+                'nash_profit': NASH_PROFIT,
+                'monopoly_profit': MONOPOLY_PROFIT,
+                'min_price': MIN_PRICE,
+                'max_price': MAX_PRICE}}
 
 #ENV = gym.make("CartPole-v1")
 #ENV = ContBertrand()
