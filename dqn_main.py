@@ -14,7 +14,7 @@ Created on Sat Dec 28 14:47:03 2019
 !git add dqn_model.py
 !git add agent.py
 !git add experience_buffer.py
-!git commit -m "Beginning to change things to fix convergence"
+!git commit -m "new parameters, larger obs space, new net"
 !git remote add origin https://github.com/filipmellgren/DQN_pricing_algorithms.git
 !git push -u origin master
 
@@ -51,6 +51,7 @@ import time
 from agent import Agent1 as Agent
 from experience_buffer import ExperienceBuffer
 from config import PARAMS
+from config import HYPERPARAMS
 from config import calc_loss
 from cont_bertrand import ContBertrand
 from config import args #args includes a few arguments used throughout. TODO: should all arguments be passed via this guy?
@@ -60,19 +61,19 @@ import collections
 
 Experience = collections.namedtuple('Experience', field_names=['state', 'action', 'reward', 'done', 'new_state'])
 
-GAMMA = PARAMS[1]
-BATCH_SIZE = int(PARAMS[1])
-REPLAY_SIZE = int(PARAMS[2])
-REPLAY_START_SIZE = PARAMS[3]
-LEARNING_RATE = PARAMS[4]
-SYNC_TARGET_FRAMES = PARAMS[5]
-EPSILON_DECAY_LAST_FRAME = PARAMS[6]
-EPSILON_START = PARAMS[7]
-EPSILON_FINAL = PARAMS[8]
-BETA = PARAMS[9]
-nA = PARAMS[10].astype(int)
-dO = PARAMS[11].astype(int)
-FRAMES = PARAMS[12]
+params = HYPERPARAMS['full_obs_NB']
+GAMMA = params['gamma']
+BATCH_SIZE = params['batch_size']
+REPLAY_SIZE = params['replay_size']
+REPLAY_START_SIZE = params['replay_start_size']
+LEARNING_RATE = params['learning_rate']
+SYNC_TARGET_FRAMES = params['sync_target_frames']
+EPSILON_DECAY_LAST_FRAME = params['epsilon_decay_last_frame']
+EPSILON_START = params['epsilon_start']
+EPSILON_FINAL = params['epsilon_final']
+nA = params['nA']
+dO = params['dO']
+FRAMES = params['frames']
 
 # PyTorch setup
 use_cuda = torch.cuda.is_available() and not args.no_cuda
@@ -118,7 +119,7 @@ ts = time.time()
 s_next = env.reset()
 epsilon = EPSILON_START
 
-for t in range(1, int(FRAMES)):
+for t in range(1, 3*int(FRAMES)):
     frame_idx += 1
     #epsilon = np.exp(-BETA*frame_idx) + 0.01
     epsilon = max(EPSILON_FINAL, EPSILON_START - frame_idx / EPSILON_DECAY_LAST_FRAME)
@@ -181,3 +182,4 @@ writer.close()
 # TODO: fix monopoly price and profit
 # TODO: sequential actions
 # TODO: does it even know that rewards should be as high as possible?
+# Warning of NaN or Inf when setting nA to 4 instead of 20.

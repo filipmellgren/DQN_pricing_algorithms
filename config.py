@@ -16,17 +16,33 @@ import argparse
 # TODO: Monopoly price might be wrong; Should be set when there is no competitor
 
 # Hyperparameters
+HYPERPARAMS = {
+        'full_obs_NB': {
+                'gamma': 0.99,
+                'batch_size': 1000,
+                'replay_size': 25_000,
+                'replay_start_size': 25_000,
+                'learning_rate': 0.01,
+                'sync_target_frames': 50_000,
+                'epsilon_decay_last_frame': 400_000,
+                'epsilon_start': 1,
+                'epsilon_final': 0.02,
+                'nA': 20,
+                'dO': 4,
+                'frames': 500_000
+                },
+        }
 GAMMA = 0.99
-BATCH_SIZE = 1000
+BATCH_SIZE = 1000 #From 1000, increase further
 REPLAY_SIZE = 25_000
 REPLAY_START_SIZE = 25_000
-LEARNING_RATE = 0.01
+LEARNING_RATE = 0.01 # from 0.01, increase to 0.02
 SYNC_TARGET_FRAMES = 50_000
 EPSILON_DECAY_LAST_FRAME = 400_000
 EPSILON_START =  1.0
 EPSILON_FINAL = 0.01
 BETA =  10**-5 # should be 5*10**-6, but requires 1 000 000 iterations
-nA = 10 # Number of actions
+nA = 4 # Number of actions
 dO = 4 # Dimensionality of observations in each state 
 FRAMES = 500_000
 
