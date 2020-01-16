@@ -15,30 +15,13 @@ Monopoly price: price that maximises the joint profits.
     If not symmetric, the two firms maximise joint profit and split it equally.
 """
 import numpy as np
-
-
 # Hyperparameters
-nA = 200 # Number of actions, only used to gain a fine accuracy of the values
+#nA = 500 # Number of actions, only used to gain a fine accuracy of the values
 MIN_PRICE = 1.5
-PRICE_RANGE = 9 - 1.5
-
-ECON_PARAMS = {
-        'symm_bertrand':{
-                'c': 1,
-                'a': 2,
-                'a0': 1,
-                'mu': 1/2
-                },
-                }
-
-C = ECON_PARAMS['symm_bertrand']['c']
-AI = ECON_PARAMS['symm_bertrand']['a']
-A0 = ECON_PARAMS['symm_bertrand']['a0']
-MU = ECON_PARAMS['symm_bertrand']['mu']
-
+PRICE_RANGE = 0.3
 
 # Functions
-def act_to_price(action_n):
+def act_to_price(action_n, nA):
     '''
     Converts discrete actions into prices
     This is currently wrong. Need to know
@@ -60,7 +43,7 @@ def demand(price_n, a0, ai, aj, mu):
     quantity_n = num / denom
     return(quantity_n)
     
-def profit(action_n, a0, ai, aj, mu):
+def profit(action_n, a0, ai, aj, mu, c, nA):
     '''
     profit_n gives profits in the market after taking prices as argument
     INPUT
@@ -68,13 +51,13 @@ def profit(action_n, a0, ai, aj, mu):
     OUTPUT
     profit_n.......profit, an np.array([]) containing profits
     '''
-    price_n = act_to_price(action_n)
+    price_n = act_to_price(action_n, nA)
     quantity_n = demand(price_n, a0, ai, aj, mu)          
-    profit_n = quantity_n * (price_n-C)
+    profit_n = quantity_n * (price_n-c)
     return(profit_n)
     
 # NASH 
-def nash_action(nA, a0, ai, aj, mu):
+def nash_action(nA, a0, ai, aj, mu, c):
     '''
     Calculates a nash action.
     Does not assume symmetry.
@@ -93,8 +76,7 @@ def nash_action(nA, a0, ai, aj, mu):
     for a1 in range(nA):
         for a2 in range(nA):
             action = np.array([a1, a2])
-            price = act_to_price(action)
-            profits[a1][a2] = profit(price, a0, ai, aj, mu)[0]
+            profits[a1][a2] = profit(action, a0, ai, aj, mu, c, nA)[0]
     # Best response firm 1 to any price of firm 2
     br = np.zeros((nA))
     for a2 in range(nA):
@@ -114,7 +96,7 @@ def nash_action(nA, a0, ai, aj, mu):
     return(nash_action_n)
 
 # MONOPOLY
-def monopoly_action(nA, a0, ai, aj, mu):
+def monopoly_action(nA, a0, ai, aj, mu, c):
     '''
     Calculates the fully collusive actions.
     Assumes symmetry.
@@ -129,8 +111,7 @@ def monopoly_action(nA, a0, ai, aj, mu):
     for a1 in range(nA):
        for a2 in range(nA):
            action = np.array([a1, a2])
-           price = act_to_price(action)
-           profits[a1][a2] = profit(price, a0, ai, aj, mu)[0]
+           profits[a1][a2] = profit(action, a0, ai, aj, mu, c, nA)[0]
     # Add profits and t(profits) to get sum of an action pair
     profits = profits + profits.transpose()
     act1,act2 = np.where(profits==profits.max())
