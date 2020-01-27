@@ -35,7 +35,7 @@ class Agent1:
         if np.random.uniform() < eps: # eps goes from 0 to 1 over iterations
             action = self.env.single_action_space.sample()
         else:
-            state_v = torch.Tensor(state)
+            state_v = torch.Tensor(state).to(device)
             q_vals_v = net(state_v)
             #_, action = self.max_value_action()
             _, act_v = torch.max(q_vals_v, dim=0) # TODO: correct diumension?

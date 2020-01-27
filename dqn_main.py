@@ -15,7 +15,7 @@ Created on Sat Dec 28 14:47:03 2019
 !git add dqn_model.py
 !git add agent.py
 !git add experience_buffer.py
-!git commit -m "commit something that works before bigger change"
+!git commit -m "got rid of argparser"
 !git remote add origin https://github.com/filipmellgren/DQN_pricing_algorithms.git
 !git push -u origin master
 
@@ -103,8 +103,8 @@ agent1 = Agent(env, buffer1, net1, tgt_net1, optimizer1)
 writer = SummaryWriter(comment = "-")
 
 # Initialize variables
-env.seed(args.seed)
-torch.manual_seed(args.seed)
+env.seed(SEED) # TODO; is this used
+torch.manual_seed(SEED)
 
 frame_idx = 0
 ts_frame = 0
@@ -120,8 +120,8 @@ for t in range(1, FRAMES):
     #epsilon = np.exp(-BETA*frame_idx) + 0.01
     epsilon = max(EPSILON_FINAL, EPSILON_START - frame_idx / EPSILON_DECAY_LAST_FRAME)
     s = s_next
-    action0 = agent0.act(net0, s[np.array([0,2,4,5])], epsilon)
-    action1 = agent1.act(net1, s[np.array([0,2,4,5])], epsilon)
+    action0 = agent0.act(net0, s[np.array([0,2,4,5])], epsilon, device = device.type)
+    action1 = agent1.act(net1, s[np.array([0,2,4,5])], epsilon, device = device.type)
     s_next, reward_n, done, _ = env.step(action0, action1, epsilon, frame_idx)
         
     exp0 = Experience(s_next[np.array([0,2,4,5])], action0, reward_n[0], done, s[np.array([0,2,4,5])])
