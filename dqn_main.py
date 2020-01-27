@@ -10,11 +10,12 @@ Created on Sat Dec 28 14:47:03 2019
 !git add README.md
 !git add cont_bertrand.py
 !git add config.py
+!git add calc_nash_monopoly.py
 !git add dqn_main.py
 !git add dqn_model.py
 !git add agent.py
 !git add experience_buffer.py
-!git commit -m "new parameters, larger obs space, new net"
+!git commit -m "commitdd"
 !git remote add origin https://github.com/filipmellgren/DQN_pricing_algorithms.git
 !git push -u origin master
 
@@ -36,7 +37,6 @@ in the browser
 #from config import ENV
 
 # TODO: do I have to "turn off" the network somehow?
-# TODO: one algorithm thrives, the other sucks. Why is this?
 # I know that adding many actions don't increase the time by much. But for now, it results in wrong numbers. 
 # Wacky transformation of price might explain why I get weird results
 
@@ -50,7 +50,6 @@ from dqn_model import Net
 import time
 from agent import Agent1 as Agent
 from experience_buffer import ExperienceBuffer
-from config import PARAMS
 from config import HYPERPARAMS
 from config import calc_loss
 from cont_bertrand import ContBertrand
@@ -62,7 +61,6 @@ import collections
 Experience = collections.namedtuple('Experience', field_names=['state', 'action', 'reward', 'done', 'new_state'])
 
 params = HYPERPARAMS['full_obs_NB']
-GAMMA = params['gamma']
 BATCH_SIZE = params['batch_size']
 REPLAY_SIZE = params['replay_size']
 REPLAY_START_SIZE = params['replay_start_size']
@@ -72,7 +70,7 @@ EPSILON_DECAY_LAST_FRAME = params['epsilon_decay_last_frame']
 EPSILON_START = params['epsilon_start']
 EPSILON_FINAL = params['epsilon_final']
 nA = params['nA']
-dO = params['dO']
+dO_a = params['dO_a']
 FRAMES = params['frames']
 
 # PyTorch setup
@@ -85,11 +83,11 @@ if use_cuda:
   torch.cuda.manual_seed(args.seed)
 
 # Neural network model:
-net0 = Net(4,nA).to(device)
+net0 = Net(dO_a,nA).to(device)
 print(net0)
-net1 = Net(4,nA).to(device)
-tgt_net0 = Net(4,nA).to(device) # Prediction target. TODO: do I maybe want just one target to speed up training? Might work because of symmetry and that there might be an objective functon
-tgt_net1 = Net(4,nA).to(device)
+net1 = Net(dO_a,nA).to(device)
+tgt_net0 = Net(dO_a,nA).to(device) # Prediction target. TODO: do I maybe want just one target to speed up training? Might work because of symmetry and that there might be an objective functon
+tgt_net1 = Net(dO_a,nA).to(device)
 criterion = nn.MSELoss()
 optimizer0 = optim.Adam(net0.parameters(), lr=LEARNING_RATE)
 optimizer1 = optim.Adam(net1.parameters(), lr=LEARNING_RATE)
@@ -112,14 +110,12 @@ frame_idx = 0
 ts_frame = 0
 ts = time.time()
 
-# TODO: fit net to random play to initialize an approximation to the Q-values
 
 # Training – Main loop
-# TODO: repeat training loop multiple times for main results
 s_next = env.reset()
 epsilon = EPSILON_START
 
-for t in range(1, 3*int(FRAMES)):
+for t in range(1, FRAMES):
     frame_idx += 1
     #epsilon = np.exp(-BETA*frame_idx) + 0.01
     epsilon = max(EPSILON_FINAL, EPSILON_START - frame_idx / EPSILON_DECAY_LAST_FRAME)

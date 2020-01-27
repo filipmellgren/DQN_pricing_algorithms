@@ -7,30 +7,44 @@ Created on Mon Jan  6 11:38:21 2020
 
 Configuration of parameters
 """
-import gym
 import numpy as np
 import torch
 from torch import nn
 import argparse
-from calc_nash_monopoly import act_to_price, demand, profit, nash_action, monopoly_action 
+from calc_nash_monopoly import act_to_price, profit, nash_action, monopoly_action 
 
 # Hyperparameters
 HYPERPARAMS = {
         'full_obs_NB': {
-                'gamma': 0.99,
-                'batch_size': 1000,
-                'replay_size': 25_000,
-                'replay_start_size': 25_000,
-                'learning_rate': 0.01,
-                'sync_target_frames': 50_000,
-                'epsilon_decay_last_frame': 400_000,
+                'gamma': 0.995,
+                'batch_size': 750,
+                'replay_size': 50_000,
+                'replay_start_size': 50_000,
+                'learning_rate': 0.00025,
+                'sync_target_frames': 10_000,
+                'epsilon_decay_last_frame': 100_000,
                 'epsilon_start': 1,
                 'epsilon_final': 0.02,
-                'nA': 10,
+                'nA': 20,
+                'dO': 6,
+                'dO_a': 4,
+                'frames': 200_000
+                },
+        'deepmind2015': {
+                'gamma': 0.99,
+                'batch_size': 32,
+                'replay_size': 1_000_000,
+                'replay_start_size': 50_000,
+                'learning_rate': 0.00025, # Note, also included momentum
+                'sync_target_frames': 10_000, # They don't save only when a record has been reached
+                'epsilon_decay_last_frame': 1_000_000,
+                'epsilon_start': 1,
+                'epsilon_final': 0.1,
+                'nA': 20,
                 'dO': 6,
                 'dO_a': 4,
                 'frames': 5_000
-                },
+                }
         }
 
 nA = HYPERPARAMS['full_obs_NB']['nA']
@@ -41,16 +55,14 @@ C = 1
 A = 2
 A0 = 1
 MU = 1/2
+grid = 500 # Higher values gives better approximation of nash/monopoly-profits
+NASH_ACTION = nash_action(grid, A0, A, A, MU, C)
+NASH_PRICE = act_to_price(NASH_ACTION, grid)
+NASH_PROFIT = profit(NASH_ACTION, A0, A, A, MU, C, grid)
 
-NASH_ACTION = nash_action(nA, A0, A, A, MU)
-NASH_PRICE = act_to_price(NASH_ACTION)
-NASH_PROFIT = profit(NASH_PRICE, A0, A, A, MU)
-
-MONOPOLY_ACTION = monopoly_action(nA, A0, A, A, MU)
-MONOPOLY_PRICE = act_to_price(MONOPOLY_ACTION)
-MONOPOLY_PROFIT = profit(MONOPOLY_PRICE, A0, A, A, MU) # Sum and divide by two?
-
-# MAX AND MIN
+MONOPOLY_ACTION = monopoly_action(grid, A0, A, A, MU, C)
+MONOPOLY_PRICE = act_to_price(MONOPOLY_ACTION, grid)
+MONOPOLY_PROFIT = profit(MONOPOLY_ACTION, A0, A, A, MU, C, grid) 
 MIN_PRICE = 0.9 * NASH_PRICE
 MAX_PRICE = 1.1 * MONOPOLY_PRICE
 
@@ -94,7 +106,7 @@ def calc_loss(batch, net, tgt_net, device="cpu"):
     expected_state_action_values = next_state_values * GAMMA + rewards_v
     return nn.MSELoss()(state_action_values, expected_state_action_values)
 
-def avg_profit_gain(avg_profit, nash_profit = NASH_PROFIT[0], monopoly_profit = MONOPOLY_PROFIT):
+def avg_profit_gain(avg_profit, nash_profit = NASH_PROFIT[0], monopoly_profit = MONOPOLY_PROFIT[0]):
     '''
     avg_profit_gain() gives an index of collusion
     INPUT
@@ -105,23 +117,25 @@ def avg_profit_gain(avg_profit, nash_profit = NASH_PROFIT[0], monopoly_profit = 
     apg = (avg_profit - nash_profit) / (monopoly_profit - nash_profit)
     return apg
 
-def profit_n(action_n, nA = nA, c = C, ai = A, aj = A, a0 = A0, mu = MU, price_range = MAX_PRICE - MIN_PRICE, min_price = MIN_PRICE):
-    '''
-    profit_n gives profits in the market after taking prices as argument
-    INPUT
-    action_n.....an np.array([]) containing two prices
-    OUTPUT
-    profit.......profit, an np.array([]) containing profits
-    '''
-    a = np.array([ai, aj])
-    a_not = np.flip(a) # to obtain the other firm's a
-      
-    p = (price_range * action_n/(nA-1)) + min_price 
-    p_not = np.flip(p) # to obtain the other firm's p
-    num = np.exp((a - p)/mu)
-    denom = np.exp((a - p)/(mu)) + np.exp((a_not - p_not)/(mu)) + np.exp(a0/mu)
-    quantity_n = num / denom
-          
-    profit = quantity_n * (p-c)
-    return(profit)
+# =============================================================================
+# def profit_n(action_n, nA = nA, c = C, ai = A, aj = A, a0 = A0, mu = MU, price_range = MAX_PRICE - MIN_PRICE, min_price = MIN_PRICE):
+#     '''
+#     profit_n gives profits in the market after taking prices as argument
+#     INPUT
+#     action_n.....an np.array([]) containing two prices
+#     OUTPUT
+#     profit.......profit, an np.array([]) containing profits
+#     '''
+#     a = np.array([ai, aj])
+#     a_not = np.flip(a) # to obtain the other firm's a
+#       
+#     p = (price_range * action_n/(nA-1)) + min_price 
+#     p_not = np.flip(p) # to obtain the other firm's p
+#     num = np.exp((a - p)/mu)
+#     denom = np.exp((a - p)/(mu)) + np.exp((a_not - p_not)/(mu)) + np.exp(a0/mu)
+#     quantity_n = num / denom
+#           
+#     profit = quantity_n * (p-c)
+#     return(profit)
+# =============================================================================
 

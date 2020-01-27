@@ -16,18 +16,24 @@ import numpy as np
 
 from config import HYPERPARAMS
 from config import ECONPARAMS
-from config import profit_n
+from calc_nash_monopoly import profit
 params = HYPERPARAMS['full_obs_NB']
 eparams = ECONPARAMS['base_case']
 
 
-MIN_PRICE = eparams['min_price']
-MAX_PRICE = eparams['max_price']
-NASH_PROFIT = eparams['nash_profit']
-MONOPOLY_PROFIT = eparams['monopoly_profit']
+MIN_PRICE = eparams['min_price'][0]
+MAX_PRICE = eparams['max_price'][0]
+NASH_PROFIT = eparams['nash_profit'][0]
+MONOPOLY_PROFIT = eparams['monopoly_profit'][0]
+C = eparams['c']
+A = eparams['a']
+A0 = eparams['a0']
+MU = eparams['mu']
 
 nA = params['nA']
 FRAMES = params['frames']
+
+
 
 class ContBertrand(gym.Env):
     metadata = {'render.modes': ['human']} #?
@@ -128,7 +134,7 @@ class ContBertrand(gym.Env):
         action = np.array([action0, action1])
         #assert self.action_space.contains(action), "%r (%s) invalid"%(action, type(action)) # TODO: make this work (threw assertionerror for valid actions)
         #state = self.state
-        reward = profit_n(action)
+        reward = profit(action, a0 = A0, ai = A, aj = A, mu = MU, c = C, nA = nA)
         self.state = np.array([reward[0], action[0], reward[1], action[1], eps, frame])
         done = bool(False) # TODO: how to define this? Might want to include a counter in the environment
         return self.state, reward, done, {}
