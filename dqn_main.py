@@ -15,7 +15,7 @@ Created on Sat Dec 28 14:47:03 2019
 !git add dqn_model.py
 !git add agent.py
 !git add experience_buffer.py
-!git commit -m "got rid of argparser"
+!git commit -m "updated to allow for use of a gpu"
 !git remote add origin https://github.com/filipmellgren/DQN_pricing_algorithms.git
 !git push -u origin master
 
@@ -42,6 +42,14 @@ in the browser
 
 # TODO: another idea in foerster is to simply use a shorter, more recent experience replay buffers
 
+# TODO: reset agents
+    # Add to this the "warm" initialisation of net and optimizer
+
+# TODO: Let synchronizatin be closer related to learnng rate
+# TODO: how often to sync network?
+# TODO: sequential actions
+
+
 import torch
 from torch import nn, optim
 import numpy as np
@@ -56,6 +64,7 @@ from cont_bertrand import ContBertrand
 from config import avg_profit_gain
 ENV = ContBertrand()
 import collections
+import os.path
 
 Experience = collections.namedtuple('Experience', field_names=['state', 'action', 'reward', 'done', 'new_state'])
 
@@ -72,6 +81,7 @@ nA = params['nA']
 dO_a = params['dO_a']
 FRAMES = params['frames']
 SEED = params['seed']
+PATH = params['path']
 
 # PyTorch setup
 use_cuda = torch.cuda.is_available()
@@ -84,12 +94,11 @@ if use_cuda:
 
 # Neural network model:
 net0 = Net(dO_a,nA).to(device)
-print(net0)
 net1 = Net(dO_a,nA).to(device)
 tgt_net0 = Net(dO_a,nA).to(device) # Prediction target. TODO: do I maybe want just one target to speed up training? Might work because of symmetry and that there might be an objective functon
 tgt_net1 = Net(dO_a,nA).to(device)
 criterion = nn.MSELoss()
-optimizer0 = optim.Adam(net0.parameters(), lr=LEARNING_RATE)
+optimizer0 = optim.Adam(net0.parameters(), lr=LEARNING_RATE) 
 optimizer1 = optim.Adam(net1.parameters(), lr=LEARNING_RATE)
 buffer0 = ExperienceBuffer(REPLAY_SIZE)
 buffer1 = ExperienceBuffer(REPLAY_SIZE)
@@ -110,10 +119,25 @@ frame_idx = 0
 ts_frame = 0
 ts = time.time()
 
-
-# Training – Main loop
 s_next = env.reset()
 epsilon = EPSILON_START
+
+# Initialize nets and optimizers:
+if os.path.exists(PATH):
+    checkpoint = torch.load(PATH)
+    agent0.net.load_state_dict(checkpoint['agent0_state_dict'])
+    agent1.net.load_state_dict(checkpoint['agent1_state_dict'])
+    agent0.optimizer.load_state_dict(checkpoint['optimizer0_dict'])
+    agent1.optimizer.load_state_dict(checkpoint['optimizer1_dict'])
+    frame_idx = checkpoint['frame_idx']
+    epsilon = checkpoint['epsilon']
+    s_next = checkpoint['env_state']
+
+
+# Training – Main loop
+
+FRAMES = 5_000 # Update manually here for experimentatino purposes
+time_start = time.time()
 
 for t in range(1, FRAMES):
     frame_idx += 1
@@ -150,6 +174,7 @@ for t in range(1, FRAMES):
                 agent.best_mean_pg = mean_pg
             if agent.length_opt_act > 25000: # TODO: Don't hardcode
                 print("Solved in %d frames!" % frame_idx)
+                print(agent.length_opt_act)
                 break
             a += 1
             
@@ -166,16 +191,18 @@ for t in range(1, FRAMES):
         agent.optimizer.step()
     writer.add_scalar(str(a) + "loss", loss_t, frame_idx)
     
+    if frame_idx % 1_000_000:
+        torch.save({
+            'agent0_state_dict': agent0.net.state_dict(),
+            'agent1_state_dict': agent1.net.state_dict(),
+            'optimizer0_dict': agent0.optimizer.state_dict(),
+            'optimizer1_dict': agent1.optimizer.state_dict(),
+            'epsilon': epsilon,
+            'frame_idx': frame_idx,
+            'env_state': s_next
+            }, PATH)
+    
 writer.close()
-# TODO: reset agents
-# TODO: play agent in stationary environment first and let it solve this problem.
-    # Check profit function
-    # Check the flow
-    # Update how nets are saved
-# TODO: Let synchronizatin be closer related to learnng rate
-# TODO: fewer actions
-# TODO: how often to sync network?
-# TODO: fix monopoly price and profit
-# TODO: sequential actions
-# TODO: does it even know that rewards should be as high as possible?
-# Warning of NaN or Inf when setting nA to 4 instead of 20.
+time_stop = time.time()
+print(time_start - time_stop) # 100 000 frames on CPU: 1817 seconds, on GPU in colab: 952
+# 50 000 on CPU: 1566 (?) on GPU: 

@@ -28,6 +28,7 @@ HYPERPARAMS = {
                 'dO_a': 4,
                 'frames': 20_000,
                 'seed': 1,
+                'path': "checkpoint.pt"
                 },
         'deepmind2015': {
                 'gamma': 0.99,
@@ -44,6 +45,7 @@ HYPERPARAMS = {
                 'dO_a': 4,
                 'frames': 5_000,
                 'seed': 1,
+                'path': "checkpoint.pt"
                 }
         }
 
