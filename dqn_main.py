@@ -15,7 +15,7 @@ Created on Sat Dec 28 14:47:03 2019
 !git add dqn_model.py
 !git add agent.py
 !git add experience_buffer.py
-!git commit -m "commitdd"
+!git commit -m "commit something that works before bigger change"
 !git remote add origin https://github.com/filipmellgren/DQN_pricing_algorithms.git
 !git push -u origin master
 
@@ -53,7 +53,6 @@ from experience_buffer import ExperienceBuffer
 from config import HYPERPARAMS
 from config import calc_loss
 from cont_bertrand import ContBertrand
-from config import args #args includes a few arguments used throughout. TODO: should all arguments be passed via this guy?
 from config import avg_profit_gain
 ENV = ContBertrand()
 import collections
@@ -72,15 +71,16 @@ EPSILON_FINAL = params['epsilon_final']
 nA = params['nA']
 dO_a = params['dO_a']
 FRAMES = params['frames']
+SEED = params['seed']
 
 # PyTorch setup
-use_cuda = torch.cuda.is_available() and not args.no_cuda
+use_cuda = torch.cuda.is_available()
 device = torch.device('cuda' if use_cuda else 'cpu') # CPU when GPU is not available <-> device agnostic
 print(device)
 
-torch.manual_seed(args.seed)
+torch.manual_seed(SEED)
 if use_cuda:
-  torch.cuda.manual_seed(args.seed)
+  torch.cuda.manual_seed(SEED)
 
 # Neural network model:
 net0 = Net(dO_a,nA).to(device)

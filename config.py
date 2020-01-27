@@ -7,10 +7,8 @@ Created on Mon Jan  6 11:38:21 2020
 
 Configuration of parameters
 """
-import numpy as np
 import torch
 from torch import nn
-import argparse
 from calc_nash_monopoly import act_to_price, profit, nash_action, monopoly_action 
 
 # Hyperparameters
@@ -28,7 +26,8 @@ HYPERPARAMS = {
                 'nA': 20,
                 'dO': 6,
                 'dO_a': 4,
-                'frames': 200_000
+                'frames': 20_000,
+                'seed': 1,
                 },
         'deepmind2015': {
                 'gamma': 0.99,
@@ -43,7 +42,8 @@ HYPERPARAMS = {
                 'nA': 20,
                 'dO': 6,
                 'dO_a': 4,
-                'frames': 5_000
+                'frames': 5_000,
+                'seed': 1,
                 }
         }
 
@@ -79,15 +79,6 @@ ECONPARAMS = {
 
 #ENV = gym.make("CartPole-v1")
 #ENV = ContBertrand()
-
-parser = argparse.ArgumentParser(description='Pricing algorithms')
-parser.add_argument('--no-cuda', action='store_true', default=False,
-                    help='disables CUDA training')
-parser.add_argument('--seed', type=int, default=1, metavar='S',
-                    help='random seed (default: 1)')
-
-args = parser.parse_args() # TODO: load just this guy for minimalism
-
 
 # Functions
 def calc_loss(batch, net, tgt_net, device="cpu"):
