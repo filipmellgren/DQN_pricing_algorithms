@@ -15,7 +15,7 @@ Created on Sat Dec 28 14:47:03 2019
 !git add dqn_model.py
 !git add agent.py
 !git add experience_buffer.py
-!git commit -m "updated to allow for use of a gpu"
+!git commit -m "Added intermediate saving of net + optimizer"
 !git remote add origin https://github.com/filipmellgren/DQN_pricing_algorithms.git
 !git push -u origin master
 
@@ -65,6 +65,8 @@ from config import avg_profit_gain
 ENV = ContBertrand()
 import collections
 import os.path
+import time 
+
 
 Experience = collections.namedtuple('Experience', field_names=['state', 'action', 'reward', 'done', 'new_state'])
 
@@ -123,7 +125,7 @@ s_next = env.reset()
 epsilon = EPSILON_START
 
 # Initialize nets and optimizers:
-if os.path.exists(PATH):
+if os.path.exists("nonsense" + PATH):
     checkpoint = torch.load(PATH)
     agent0.net.load_state_dict(checkpoint['agent0_state_dict'])
     agent1.net.load_state_dict(checkpoint['agent1_state_dict'])
@@ -136,7 +138,7 @@ if os.path.exists(PATH):
 
 # Training – Main loop
 
-FRAMES = 5_000 # Update manually here for experimentatino purposes
+FRAMES = 100_000 # Update manually here for experimentation purposes
 time_start = time.time()
 
 for t in range(1, FRAMES):
@@ -158,20 +160,15 @@ for t in range(1, FRAMES):
         for agent in [agent0, agent1]:
             reward = reward_n[a]
             pg = avg_profit_gain(reward)
-            #agent.total_rewards.append(reward)
             agent.total_pg.append(pg)
-            #speed = (frame_idx - ts_frame) / (time.time() - ts)
-            #ts_frame  = frame_idx
-            #ts = time.time()
             
             mean_pg = np.mean(agent.total_pg[-10000:])
-        #writer.add_scalar("reward_100", mean_reward, frame_idx)
             writer.add_scalar(str(a), mean_pg, frame_idx)
-            if agent.best_mean_pg is None or agent.best_mean_pg < mean_pg or frame_idx % (SYNC_TARGET_FRAMES) == 0:
-                torch.save(agent.net.state_dict(),  "-best.dat")  
-                if agent.best_mean_pg is not None:
-                    print("Best mean profit gain updated, %.1f: %.3f -> %.3f, model saved. Iteration: %.1f" % (a, agent.best_mean_pg, mean_pg, frame_idx))
-                agent.best_mean_pg = mean_pg
+           # if agent.best_mean_pg is None or agent.best_mean_pg < mean_pg or frame_idx % (SYNC_TARGET_FRAMES) == 0:
+            #    torch.save(agent.net.state_dict(),  "-best.dat") # TOOD, ever used?
+                #if agent.best_mean_pg is not None:
+                 #   print("Best mean profit gain updated, %.1f: %.3f -> %.3f, model saved. Iteration: %.1f" % (a, agent.best_mean_pg, mean_pg, frame_idx))
+                #agent.best_mean_pg = mean_pg
             if agent.length_opt_act > 25000: # TODO: Don't hardcode
                 print("Solved in %d frames!" % frame_idx)
                 print(agent.length_opt_act)
@@ -191,7 +188,8 @@ for t in range(1, FRAMES):
         agent.optimizer.step()
     writer.add_scalar(str(a) + "loss", loss_t, frame_idx)
     
-    if frame_idx % 1_000_000:
+    if frame_idx % 500_000 == 0:
+        print(frame_idx)
         torch.save({
             'agent0_state_dict': agent0.net.state_dict(),
             'agent1_state_dict': agent1.net.state_dict(),
@@ -200,9 +198,10 @@ for t in range(1, FRAMES):
             'epsilon': epsilon,
             'frame_idx': frame_idx,
             'env_state': s_next
-            }, PATH)
+            }, str(frame_idx) + PATH)
     
 writer.close()
 time_stop = time.time()
 print(time_start - time_stop) # 100 000 frames on CPU: 1817 seconds, on GPU in colab: 952
 # 50 000 on CPU: 1566 (?) on GPU: 
+
