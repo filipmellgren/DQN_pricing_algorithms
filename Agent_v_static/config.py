@@ -14,21 +14,22 @@ from calc_nash_monopoly import act_to_price, profit, nash_action, monopoly_actio
 # Hyperparameters
 HYPERPARAMS = {
         'full_obs_NB': {
-                'gamma': 0.95, # Think a lower discounting, as 0.95, will lead to quicker convergence
-                'batch_size': 128, # 32 when it first worked, 128 deemed standard by princeton lecture notes
-                'replay_size': 10_000, # 50 000 when first worked, test 10 000
-                'replay_start_size': 10_000, # 50 000 when it first worked, lower to 10 000
-                'learning_rate': 0.0001, # hold at 0.0001
-                'sync_target_frames': 10_000, # test 1000 instead of 10 000 -> back to 10 000
-                'epsilon_decay_last_frame': 100_000,
+                'gamma': 0.95, 
+                'batch_size': 32, 
+                'replay_size': 50_000,
+                'replay_start_size': 50_000,
+                'learning_rate': 0.01,
+                'sync_target_frames': 25_000,
+                'epsilon_decay_last_frame': 500_000,
                 'epsilon_start': 1,
-                'epsilon_final': 0.05,
-                'nA': 10,
+                'epsilon_final': 0.1,
+                'nA': 8,
                 'dO': 6,
                 'dO_a': 2,
                 'frames': 1_000_000,
                 'seed': 1,
-                'path': "checkpoint.pt"
+                'path': "checkpoint.pt",
+                'nodes': 32 # For neural network (its hidden layers has same no. nodes)
                 },
         'deepmind2015': {
                 'gamma': 0.99,
@@ -48,7 +49,7 @@ HYPERPARAMS = {
                 'path': "checkpoint.pt"
                 }
         }
-        
+
 nA = HYPERPARAMS['full_obs_NB']['nA']
 GAMMA = HYPERPARAMS['full_obs_NB']['gamma']
 
