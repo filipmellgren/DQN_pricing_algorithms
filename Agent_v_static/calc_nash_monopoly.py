@@ -57,6 +57,19 @@ def profit(action_n, a0, ai, aj, mu, c, nA):
     return(profit_n)
     
 # NASH 
+    # idea that I check if:
+    # value == index AND value == index (i.e. for both)
+    
+    
+def best_response(rival_action, nA, a0, ai, aj, mu, c):
+    # Profits
+    profits = np.zeros((nA, 1))
+    for action in range(nA):
+        meta_action = np.array([int(action), int(rival_action)])
+        profits[int(action)] = profit(meta_action, a0, ai, aj, mu, c, nA)[0]
+    # Best response
+    return(np.argmax(profits))
+
 def nash_action(nA, a0, ai, aj, mu, c):
     '''
     Calculates a nash action.
@@ -72,27 +85,49 @@ def nash_action(nA, a0, ai, aj, mu, c):
     nash_action..Actions that correspond to a Nash equilibrium
     '''
     # Profits
-    profits = np.zeros((nA, nA))
-    for a1 in range(nA):
-        for a2 in range(nA):
-            action = np.array([a1, a2])
-            profits[a1][a2] = profit(action, a0, ai, aj, mu, c, nA)[0]
+# =============================================================================
+#     profits = np.zeros((nA, nA))
+#     for a1 in range(nA):
+#         for a2 in range(nA):
+#             action = np.array([a1, a2])
+#             profits[a1][a2] = profit(action, a0, ai, aj, mu, c, nA)[0]
+# =============================================================================
     # Best response firm 1 to any price of firm 2
-    br = np.zeros((nA))
+    br0 = np.zeros((nA))
     for a2 in range(nA):
-        br[a2] = np.argmax(profits[:, a2])
+        br0[a2] = best_response(a2, nA, a0, ai, aj, mu, c) # Note how ai and aj swap position. TODO: same with cost
     # Best reponse firm 2 to any best response of firm 1
     br1 = np.zeros((nA))
     for a1 in range(nA):
-        br1[a1] = np.argmax(profits[:, a1])
+        br1[a1] = best_response(a1, nA, a0, aj, ai, mu, c)
     
-    br = np.vstack((br,br1, np.arange(nA))).transpose()
+    br = np.vstack((br0,br1, np.arange(nA))).transpose()
+    print(br)
     # NE  action is the first firm's BR when the BR of the rival corresponds to 
     # the action the first firm reacted to.
-    is_nash = br[:,1] == br[:,2]
-    nash_action1 = np.argmax(is_nash)
-    nash_action2 = int(br1[nash_action1])
-    nash_action_n = np.array([nash_action1, nash_action2])
+    # Iteration: 
+    #   Initiate player 0's action at 0 (arbitrary assuming unique equilibrium)
+    #   Look at best response to action 0 of player 1
+    #   Let player 0 play best response to best response of player 1
+    #   Break loop if player 0's best response is the same as the action
+    #   player 1 responded to. Otherwise continue and update player 0's action
+    #   to the best response player 1 choose.
+    
+    action0 = 0
+    action0_n = 1
+    while action0 != action0_n:
+        action0 = action0_n
+        action1 = int(br1[action0])
+        action0_n = int(br0[action1])
+        
+    nash_action_n = np.array([action0, action1])
+        
+# =============================================================================
+#     is_nash = br[:,1] == br[:,2]
+#     nash_action1 = np.argmax(is_nash)
+#     nash_action2 = int(br1[nash_action1])
+#     nash_action_n = np.array([nash_action1, nash_action2])
+# =============================================================================
     return(nash_action_n)
 
 # MONOPOLY
