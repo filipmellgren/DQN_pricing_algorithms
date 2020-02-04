@@ -30,47 +30,46 @@ def act_to_price(action_n, nA):
 
     return(price_n)
 
-def demand(price_n, a0, ai, aj, mu):
+def demand(price_n, a_n, a0, mu):
     '''
     Calculates a demand for each firm, given prices
     '''
     p = price_n
-    a = np.array([ai, aj])
-    a_not = np.flip(a) # to obtain the other firm's a
+    a_not = np.flip(a_n) # to obtain the other firm's a
     p_not = np.flip(p) # to obtain the other firm's p
-    num = np.exp((a - p)/mu)
-    denom = np.exp((a - p)/(mu)) + np.exp((a_not - p_not)/(mu)) + np.exp(a0/mu)
+    num = np.exp((a_n - p)/mu)
+    denom = np.exp((a_n - p)/(mu)) + np.exp((a_not - p_not)/(mu)) + np.exp(a0/mu)
     quantity_n = num / denom
     return(quantity_n)
     
-def profit(action_n, a0, ai, aj, mu, c, nA):
+def profit(action_n, a0, mu, firm0, firm1, nA):
     '''
     profit_n gives profits in the market after taking prices as argument
     INPUT
     action_n.....an np.array([]) containing two prices
+    firmX, .dictionaries with cost and quality information
     OUTPUT
     profit_n.......profit, an np.array([]) containing profits
     '''
+    c_n = np.array([firm0['cost'], firm1['cost']])
+    a_n = np.array([firm0['quality'], firm1['quality']])
     price_n = act_to_price(action_n, nA)
-    quantity_n = demand(price_n, a0, ai, aj, mu)          
-    profit_n = quantity_n * (price_n-c)
+    quantity_n = demand(price_n, a_n, a0, mu)          
+    profit_n = quantity_n * (price_n-c_n)
     return(profit_n)
     
-# NASH 
-    # idea that I check if:
-    # value == index AND value == index (i.e. for both)
+# NASH     
     
-    
-def best_response(rival_action, nA, a0, ai, aj, mu, c):
+def best_response(rival_action, nA, a0, mu, firm0, firm1):
     # Profits
     profits = np.zeros((nA, 1))
     for action in range(nA):
         meta_action = np.array([int(action), int(rival_action)])
-        profits[int(action)] = profit(meta_action, a0, ai, aj, mu, c, nA)[0]
+        profits[int(action)] = profit(meta_action, a0, mu, firm0, firm1, nA)[0]
     # Best response
     return(np.argmax(profits))
 
-def nash_action(nA, a0, ai, aj, mu, c):
+def nash_action(nA, a0, mu, firm0, firm1):
     '''
     Calculates a nash action.
     Does not assume symmetry.
@@ -95,11 +94,11 @@ def nash_action(nA, a0, ai, aj, mu, c):
     # Best response firm 1 to any price of firm 2
     br0 = np.zeros((nA))
     for a2 in range(nA):
-        br0[a2] = best_response(a2, nA, a0, ai, aj, mu, c) # Note how ai and aj swap position. TODO: same with cost
+        br0[a2] = best_response(a2, nA, a0, mu, firm0, firm1)
     # Best reponse firm 2 to any best response of firm 1
     br1 = np.zeros((nA))
     for a1 in range(nA):
-        br1[a1] = best_response(a1, nA, a0, aj, ai, mu, c)
+        br1[a1] = best_response(a1, nA, a0, mu, firm1, firm0) # Note they are flipped
     
     br = np.vstack((br0,br1, np.arange(nA))).transpose()
     print(br)
@@ -131,7 +130,7 @@ def nash_action(nA, a0, ai, aj, mu, c):
     return(nash_action_n)
 
 # MONOPOLY
-def monopoly_action(nA, a0, ai, aj, mu, c):
+def monopoly_action(nA, a0, mu, firm0, firm1):
     '''
     Calculates the fully collusive actions.
     Assumes symmetry.
@@ -146,7 +145,7 @@ def monopoly_action(nA, a0, ai, aj, mu, c):
     for a1 in range(nA):
        for a2 in range(nA):
            action = np.array([a1, a2])
-           profits[a1][a2] = profit(action, a0, ai, aj, mu, c, nA)[0]
+           profits[a1][a2] = profit(action, a0, mu, firm0, firm1, nA)[0]
     # Add profits and t(profits) to get sum of an action pair
     profits = profits + profits.transpose()
     act1,act2 = np.where(profits==profits.max())

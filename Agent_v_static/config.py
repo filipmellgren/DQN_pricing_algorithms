@@ -10,6 +10,7 @@ Configuration of parameters
 import torch
 from torch import nn
 from calc_nash_monopoly import act_to_price, profit, nash_action, monopoly_action 
+import numpy as np
 
 # Hyperparameters
 HYPERPARAMS = {
@@ -54,25 +55,29 @@ nA = HYPERPARAMS['full_obs_NB']['nA']
 GAMMA = HYPERPARAMS['full_obs_NB']['gamma']
 
 # Economic parameters
-C = 1
-A = 2
+
+firm0 = {'cost': 1,
+         'quality': 2}
+firm1 = {'cost': 1,
+         'quality': 2}
+
 A0 = 1
 MU = 1/2
 grid = nA # Higher values gives better approximation of nash/monopoly-profits
-NASH_ACTION = nash_action(grid, A0, A, A, MU, C)
+NASH_ACTION = nash_action(grid, A0, MU, firm0, firm1) # # # # # # # # # # # # # # # # # # # # # # # #
 NASH_PRICE = act_to_price(NASH_ACTION, grid)
-NASH_PROFIT = profit(NASH_ACTION, A0, A, A, MU, C, grid)
+NASH_PROFIT = profit(NASH_ACTION, A0, MU, firm0, firm1, grid)
 
-MONOPOLY_ACTION = monopoly_action(grid, A0, A, A, MU, C)
+MONOPOLY_ACTION = monopoly_action(grid, A0, MU, firm0, firm1)
 MONOPOLY_PRICE = act_to_price(MONOPOLY_ACTION, grid)
-MONOPOLY_PROFIT = profit(MONOPOLY_ACTION, A0, A, A, MU, C, grid) 
+MONOPOLY_PROFIT = profit(MONOPOLY_ACTION, A0, MU, firm0, firm1, grid) 
 MIN_PRICE = 0.9 * NASH_PRICE
 MAX_PRICE = 1.1 * MONOPOLY_PRICE
 
 ECONPARAMS = {
         'base_case': {
-                'c': C,
-                'a':A,
+                'firm0': firm0,
+                'firm1': firm1,
                 'a0': A0,
                 'mu': MU,
                 'nash_profit': NASH_PROFIT,

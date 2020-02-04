@@ -17,6 +17,7 @@ import numpy as np
 from config import HYPERPARAMS
 from config import ECONPARAMS
 from calc_nash_monopoly import profit
+from config import avg_profit_gain
 params = HYPERPARAMS['full_obs_NB']
 eparams = ECONPARAMS['base_case']
 
@@ -25,8 +26,9 @@ MIN_PRICE = eparams['min_price'][0]
 MAX_PRICE = eparams['max_price'][0]
 NASH_PROFIT = eparams['nash_profit'][0]
 MONOPOLY_PROFIT = eparams['monopoly_profit'][0]
-C = eparams['c']
-A = eparams['a']
+
+firm0 = eparams['firm0']
+firm1 = eparams['firm1']
 A0 = eparams['a0']
 MU = eparams['mu']
 
@@ -85,45 +87,13 @@ class ContBertrand(gym.Env):
         self.seed()
         self.reset()
         
-        def to_a(act1, act2, nA):
+        def to_a(act1, act2, nA): # TODO: unused
             '''
             Takes two discrete actions and turns it into a meta action
             '''
             action = act1*nA + act2
             return(action)
-        
-        
-# =============================================================================
-#         nrow = nA # Number of own possible actions, last state
-#         ncol = nA
-#         nS = nrow * nA
-#         isd = np.zeros(nS)
-#         P = {s : {a : [] for a in range(nA*nA)} for s in range(nS)} # Takes both actions into account
-# =============================================================================
-
-# =============================================================================
-#         def to_s(row, col):
-#             '''
-#             enumerates row, col combo to a state. the row and col can be thought
-#             of as action and profit in the last period in this application.
-#             '''
-#             return(row*ncol + col)
-# 
-#         for s in range(nS): # TODO: Correct?
-#             for action1 in range(nA): # TODO: can this be simplified?
-#                 for action2 in range(nA):
-#                     a = to_s(action1, action2)
-#                     action_n = np.array([action1, action2])
-#                     li = P[s][a]
-#                     reward_n = profit_n(action_n, nA, C, AI, AJ, A0, MU, PRICE_RANGE, MIN_PRICE)
-#                     newstate = to_s(action1, action2) # new env state is determined by what they did in the last period. TODO: is it even important whatexaclty it is?
-#                     done = False # No need to update done at init – my stopping rule does not depend on state
-#                     # Here, P[s][a] is not updated
-#                     li.append((1.0, newstate, reward_n, done)) # Why does it not need "P[s][a].append"?
-# =============================================================================
-                    # Here, P[s][a] is updated
-       #? super(DiscrBertrand, self).__init__(nS, nA, P, isd)
-    
+            
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -134,7 +104,8 @@ class ContBertrand(gym.Env):
         action = np.array([action0, action1])
         #assert self.action_space.contains(action), "%r (%s) invalid"%(action, type(action)) # TODO: make this work (threw assertionerror for valid actions)
         #state = self.state
-        reward = profit(action, a0 = A0, ai = A, aj = A, mu = MU, c = C, nA = nA)
+        reward = profit(action, a0 = A0, mu = MU, firm0 = firm0, firm1 = firm1, nA = nA)
+        #reward = avg_profit_gain(reward)
         self.state = np.array([reward[0], action[0], reward[1], action[1], eps, frame])
         done = bool(False) # TODO: how to define this? Might want to include a counter in the environment
         return self.state, reward, done, {}
