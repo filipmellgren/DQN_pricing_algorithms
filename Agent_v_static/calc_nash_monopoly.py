@@ -16,7 +16,6 @@ Monopoly price: price that maximises the joint profits.
 """
 import numpy as np
 # Hyperparameters
-#nA = 500 # Number of actions, only used to gain a fine accuracy of the values
 MIN_PRICE = 1.5
 PRICE_RANGE = 0.3
 
@@ -41,12 +40,13 @@ def demand(price_n, a_n, a0, mu):
     denom = np.exp((a_n - p)/(mu)) + np.exp((a_not - p_not)/(mu)) + np.exp(a0/mu)
     quantity_n = num / denom
     return(quantity_n)
+ # TODO: does profit take action or price?
     
 def profit(action_n, a0, mu, firm0, firm1, nA):
     '''
     profit_n gives profits in the market after taking prices as argument
     INPUT
-    action_n.....an np.array([]) containing two prices
+    action_n.....an np.array([]) containing two actions (to be converted to prices)
     firmX, .dictionaries with cost and quality information
     OUTPUT
     profit_n.......profit, an np.array([]) containing profits
@@ -57,10 +57,40 @@ def profit(action_n, a0, mu, firm0, firm1, nA):
     quantity_n = demand(price_n, a_n, a0, mu)          
     profit_n = quantity_n * (price_n-c_n)
     return(profit_n)
+
+def profit_matrix(nA, a0, mu, firm0, firm1):
+    '''
+    Returns a matrix of possible profits in the game.
     
+    INPUT
+    nA..............number of actions available
+    a0..............outside option value
+    mu..............an economic parameter
+    firmX...........a dictionary with firm info (cost and quality)
+    OUTPUT 
+    A matrix of potential profits of a firm.
+    '''
+    profits = np.zeros((nA, nA))
+    for a1 in range(nA):
+       for a2 in range(nA):
+           action = np.array([a1, a2])
+           profits[a1][a2] = profit(action, a0, mu, firm0, firm1, nA)[0]
+    return(profits)
+
 # NASH     
-    
 def best_response(rival_action, nA, a0, mu, firm0, firm1):
+    '''
+    Gives best response to an action
+    It does this by looping over all possible responses/actions and selects the
+    action that gives the highest profit.
+    
+    INPUT
+    rival_action....the action to respond to
+    nA..............number of actions available
+    a0..............outside option value
+    mu..............an economic parameter
+    firmX...........a dictionary with firm info (cost and quality)
+    '''
     # Profits
     profits = np.zeros((nA, 1))
     for action in range(nA):
@@ -83,14 +113,6 @@ def nash_action(nA, a0, mu, firm0, firm1):
     OUTPUT
     nash_action..Actions that correspond to a Nash equilibrium
     '''
-    # Profits
-# =============================================================================
-#     profits = np.zeros((nA, nA))
-#     for a1 in range(nA):
-#         for a2 in range(nA):
-#             action = np.array([a1, a2])
-#             profits[a1][a2] = profit(action, a0, ai, aj, mu, c, nA)[0]
-# =============================================================================
     # Best response firm 1 to any price of firm 2
     br0 = np.zeros((nA))
     for a2 in range(nA):
@@ -100,8 +122,6 @@ def nash_action(nA, a0, mu, firm0, firm1):
     for a1 in range(nA):
         br1[a1] = best_response(a1, nA, a0, mu, firm1, firm0) # Note they are flipped
     
-    br = np.vstack((br0,br1, np.arange(nA))).transpose()
-    print(br)
     # NE  action is the first firm's BR when the BR of the rival corresponds to 
     # the action the first firm reacted to.
     # Iteration: 
@@ -120,36 +140,39 @@ def nash_action(nA, a0, mu, firm0, firm1):
         action0_n = int(br0[action1])
         
     nash_action_n = np.array([action0, action1])
-        
-# =============================================================================
-#     is_nash = br[:,1] == br[:,2]
-#     nash_action1 = np.argmax(is_nash)
-#     nash_action2 = int(br1[nash_action1])
-#     nash_action_n = np.array([nash_action1, nash_action2])
-# =============================================================================
     return(nash_action_n)
 
 # MONOPOLY
 def monopoly_action(nA, a0, mu, firm0, firm1):
     '''
     Calculates the fully collusive actions.
-    Assumes symmetry.
-    Monopoly actions are defined as the pair of actions that jointly maximise
+    Allows assymetric firms.
+    Monopoly action is defined as the pair of actions that jointly maximise
     total profits. 
     INPUT:
         nA........ Number of actions, higher for higher accuracy
     OUTPUT:
         action_n.. The collusive actions. np array
     '''
-    profits = np.zeros((nA, nA))
-    for a1 in range(nA):
-       for a2 in range(nA):
-           action = np.array([a1, a2])
-           profits[a1][a2] = profit(action, a0, mu, firm0, firm1, nA)[0]
-    # Add profits and t(profits) to get sum of an action pair
-    profits = profits + profits.transpose()
+    profits0 = profit_matrix(nA, a0, mu, firm0, firm1)
+    profits1 = profit_matrix(nA, a0, mu, firm1, firm0) # Note the swapped position of the firms
+    # Add profits to get sum of overall profits
+    profits = profits0 + profits1
     act1,act2 = np.where(profits==profits.max())
     act1 = int(act1)
     act2 = int(act2)
     action_n = np.array([act1,act2])
     return(action_n)
+
+# Max and mins
+def max_profit(nA, a0, mu, firm0, firm1):
+    max0 = np.amax(profit_matrix(nA, a0, mu, firm0, firm1))
+    max1 = np.amax(profit_matrix(nA, a0, mu, firm1, firm0))
+    max_profit = max(max0, max1)
+    return(max_profit)
+    
+def min_profit(nA, a0, mu, firm0, firm1):
+    min0 = np.amin(profit_matrix(nA, a0, mu, firm0, firm1))
+    min1 = np.amin(profit_matrix(nA, a0, mu, firm1, firm0))
+    min_profit = min(min0, min1)
+    return(min_profit)

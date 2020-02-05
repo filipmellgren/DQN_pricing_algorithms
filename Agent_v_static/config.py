@@ -9,8 +9,7 @@ Configuration of parameters
 """
 import torch
 from torch import nn
-from calc_nash_monopoly import act_to_price, profit, nash_action, monopoly_action 
-import numpy as np
+from calc_nash_monopoly import act_to_price, profit, nash_action, monopoly_action, max_profit, min_profit
 
 # Hyperparameters
 HYPERPARAMS = {
@@ -24,7 +23,7 @@ HYPERPARAMS = {
                 'epsilon_decay_last_frame': 500_000,
                 'epsilon_start': 1,
                 'epsilon_final': 0.1,
-                'nA': 8,
+                'nA': 50,
                 'dO': 6,
                 'dO_a': 2,
                 'frames': 1_000_000,
@@ -55,7 +54,7 @@ nA = HYPERPARAMS['full_obs_NB']['nA']
 GAMMA = HYPERPARAMS['full_obs_NB']['gamma']
 
 # Economic parameters
-
+# TODO: allow for monopoly and nash outcomes to vary within the game.
 firm0 = {'cost': 1,
          'quality': 2}
 firm1 = {'cost': 1,
@@ -64,15 +63,18 @@ firm1 = {'cost': 1,
 A0 = 1
 MU = 1/2
 grid = nA # Higher values gives better approximation of nash/monopoly-profits
-NASH_ACTION = nash_action(grid, A0, MU, firm0, firm1) # # # # # # # # # # # # # # # # # # # # # # # #
+NASH_ACTION = nash_action(grid, A0, MU, firm0, firm1)
 NASH_PRICE = act_to_price(NASH_ACTION, grid)
 NASH_PROFIT = profit(NASH_ACTION, A0, MU, firm0, firm1, grid)
 
 MONOPOLY_ACTION = monopoly_action(grid, A0, MU, firm0, firm1)
 MONOPOLY_PRICE = act_to_price(MONOPOLY_ACTION, grid)
 MONOPOLY_PROFIT = profit(MONOPOLY_ACTION, A0, MU, firm0, firm1, grid) 
-MIN_PRICE = 0.9 * NASH_PRICE
-MAX_PRICE = 1.1 * MONOPOLY_PRICE
+
+MIN_PROFIT = min_profit(nA, A0, MU, firm0, firm1)
+MAX_PROFIT = max_profit(nA, A0, MU, firm0, firm1)
+MIN_PRICE = act_to_price(0, nA)
+MAX_PRICE = act_to_price(nA, nA)
 
 ECONPARAMS = {
         'base_case': {
@@ -85,7 +87,9 @@ ECONPARAMS = {
                 'min_price': MIN_PRICE,
                 'max_price': MAX_PRICE,
                 'monopoly_action': MONOPOLY_ACTION,
-                'nash_action': NASH_ACTION}}
+                'nash_action': NASH_ACTION,
+                'min_profit': MIN_PROFIT,
+                'max_profit': MAX_PROFIT}}
 
 #ENV = gym.make("CartPole-v1")
 #ENV = ContBertrand()
@@ -117,26 +121,4 @@ def avg_profit_gain(avg_profit, nash_profit = NASH_PROFIT[0], monopoly_profit = 
     '''
     apg = (avg_profit - nash_profit) / (monopoly_profit - nash_profit)
     return apg
-
-# =============================================================================
-# def profit_n(action_n, nA = nA, c = C, ai = A, aj = A, a0 = A0, mu = MU, price_range = MAX_PRICE - MIN_PRICE, min_price = MIN_PRICE):
-#     '''
-#     profit_n gives profits in the market after taking prices as argument
-#     INPUT
-#     action_n.....an np.array([]) containing two prices
-#     OUTPUT
-#     profit.......profit, an np.array([]) containing profits
-#     '''
-#     a = np.array([ai, aj])
-#     a_not = np.flip(a) # to obtain the other firm's a
-#       
-#     p = (price_range * action_n/(nA-1)) + min_price 
-#     p_not = np.flip(p) # to obtain the other firm's p
-#     num = np.exp((a - p)/mu)
-#     denom = np.exp((a - p)/(mu)) + np.exp((a_not - p_not)/(mu)) + np.exp(a0/mu)
-#     quantity_n = num / denom
-#           
-#     profit = quantity_n * (p-c)
-#     return(profit)
-# =============================================================================
 

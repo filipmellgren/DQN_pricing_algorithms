@@ -22,8 +22,10 @@ params = HYPERPARAMS['full_obs_NB']
 eparams = ECONPARAMS['base_case']
 
 
-MIN_PRICE = eparams['min_price'][0]
-MAX_PRICE = eparams['max_price'][0]
+MIN_PRICE = eparams['min_price']
+MAX_PRICE = eparams['max_price']
+MIN_PROFIT = eparams['min_profit']
+MAX_PROFIT = eparams['max_profit']
 NASH_PROFIT = eparams['nash_profit'][0]
 MONOPOLY_PROFIT = eparams['monopoly_profit'][0]
 
@@ -43,39 +45,31 @@ class ContBertrand(gym.Env):
     # useful blog post:
     # https://stackoverflow.com/questions/52727233/how-can-i-register-a-custom-environment-in-openais-gym
     """
-    This environment represents a discrete world with two agents. The agents 
-    may set prices which generates profits depending on the joint behaviour.
+    This environment represents a continuous world with two agents. The agents 
+    may set discrete prices which generates profits depending on the joint 
+    behaviour.
       
-    In principle, the environment is similar to FrozenLake with the difference 
+    In principle, the environment is similar to CartPole with the difference 
     that rows and columns (the state) are prices in the previous period.
-      
-    Inherits from discrete.Discrete which:
-          
-    Has the following members
-    - nS: number of states
-    - nA: number of actions
-    - P: transitions (*)
-    - isd: initial state distribution (**)
-    (*) dictionary dict of dicts of lists, where
-    P[s][a] == [(probability, nextstate, reward, done), ...]
-    (**) list or array of length nS
+    
+    The state is defined as:
+    state = np.array([reward[0], action[0], reward[1], action[1], eps, frame])      
     """
     def __init__(self):
         # self.variables go here
-        
         # States are defined as the profits and prices of both agents
         high_state = np.array([
-            MONOPOLY_PROFIT*1.5,
+            MAX_PROFIT,
             MAX_PRICE,
-            MONOPOLY_PROFIT*1.5,
+            MAX_PROFIT,
             MAX_PRICE,
             1,
             FRAMES])
     
         low_state = np.array([
-                0,
+                MIN_PROFIT,
                 MIN_PRICE,
-                0,
+                MIN_PROFIT,
                 MIN_PRICE,
                 0,
                 0])
