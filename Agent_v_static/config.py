@@ -15,11 +15,11 @@ from calc_nash_monopoly import act_to_price, profit, nash_action, monopoly_actio
 HYPERPARAMS = {
         'full_obs_NB': {
                 'gamma': 0.95, 
-                'batch_size': 32, 
+                'batch_size': 16, 
                 'replay_size': 50_000,
                 'replay_start_size': 50_000,
                 'learning_rate': 0.01,
-                'sync_target_frames': 25_000,
+                'sync_target_frames': 50_000,
                 'epsilon_decay_last_frame': 500_000,
                 'epsilon_start': 1,
                 'epsilon_final': 0.1,
