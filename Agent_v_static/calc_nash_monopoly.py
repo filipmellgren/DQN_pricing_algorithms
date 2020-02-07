@@ -15,6 +15,7 @@ Monopoly price: price that maximises the joint profits.
     If not symmetric, the two firms maximise joint profit and split it equally.
 """
 import numpy as np
+import itertools
 # Hyperparameters
 MIN_PRICE = 1.5
 PRICE_RANGE = 0.3
@@ -164,6 +165,29 @@ def monopoly_action(nA, a0, mu, firm0, firm1):
     action_n = np.array([act1,act2])
     return(action_n)
 
+def actions_dict(nA, a0, mu, firmlist1, firmlist2, action_type):
+    '''
+    Returns a dictionary of actions given two lists to be combined.
+    '''
+    actions_dict = {}
+    
+    if action_type == "monopoly":
+        for element in itertools.product(firmlist1,firmlist2):
+            firm0 = element[0]
+            firm1 = element[1]
+            action_array = monopoly_action(nA, a0, mu, firm0, firm1)
+            actions_dict[str(element)] = action_array
+    elif action_type == "nash":
+        for element in itertools.product(firmlist1,firmlist2):
+            firm0 = element[0]
+            firm1 = element[1]
+            action_array = nash_action(nA, a0, mu, firm0, firm1)
+            actions_dict[str(element)] = action_array
+    else:
+        raise ValueError('action_type has to be either "monopoly" or "nash".')
+    
+    return(actions_dict)
+
 # Max and mins
 def max_profit(nA, a0, mu, firm0, firm1):
     max0 = np.amax(profit_matrix(nA, a0, mu, firm0, firm1))
@@ -176,3 +200,4 @@ def min_profit(nA, a0, mu, firm0, firm1):
     min1 = np.amin(profit_matrix(nA, a0, mu, firm1, firm0))
     min_profit = min(min0, min1)
     return(min_profit)
+

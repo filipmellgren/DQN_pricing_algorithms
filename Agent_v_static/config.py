@@ -9,7 +9,7 @@ Configuration of parameters
 """
 import torch
 from torch import nn
-from calc_nash_monopoly import act_to_price, profit, nash_action, monopoly_action, max_profit, min_profit
+from calc_nash_monopoly import act_to_price, profit, nash_action, monopoly_action, max_profit, min_profit, actions_dict
 
 # Hyperparameters
 HYPERPARAMS = {
@@ -60,14 +60,21 @@ firm0 = {'cost': 1,
 firm1 = {'cost': 1,
          'quality': 2}
 
+firmlist = [firm0, firm1]
+
 A0 = 1
 MU = 1/2
 grid = nA # Higher values gives better approximation of nash/monopoly-profits
+
+
+NASH_ACTIONS = actions_dict(nA, A0, MU, firmlist, firmlist, "nash")
+MONOPOLY_ACTIONS = actions_dict(nA, A0, MU, firmlist, firmlist, "monopoly")
+
 NASH_ACTION = nash_action(grid, A0, MU, firm0, firm1)
 NASH_PRICE = act_to_price(NASH_ACTION, grid)
 NASH_PROFIT = profit(NASH_ACTION, A0, MU, firm0, firm1, grid)
 
-MONOPOLY_ACTION = monopoly_action(grid, A0, MU, firm0, firm1)
+MONOPOLY_ACTION = monopoly_action(grid, A0, MU, firm0, firm1) # TODO: Weird results here. Likely because of the way the monopoly profit is defined
 MONOPOLY_PRICE = act_to_price(MONOPOLY_ACTION, grid)
 MONOPOLY_PROFIT = profit(MONOPOLY_ACTION, A0, MU, firm0, firm1, grid) 
 
@@ -75,6 +82,8 @@ MIN_PROFIT = min_profit(nA, A0, MU, firm0, firm1)
 MAX_PROFIT = max_profit(nA, A0, MU, firm0, firm1)
 MIN_PRICE = act_to_price(0, nA)
 MAX_PRICE = act_to_price(nA, nA)
+
+
 
 ECONPARAMS = {
         'base_case': {
@@ -89,7 +98,9 @@ ECONPARAMS = {
                 'monopoly_action': MONOPOLY_ACTION,
                 'nash_action': NASH_ACTION,
                 'min_profit': MIN_PROFIT,
-                'max_profit': MAX_PROFIT}}
+                'max_profit': MAX_PROFIT,
+                'nash_actions': NASH_ACTIONS,
+                'monopoly_actions': MONOPOLY_ACTIONS}}
 
 #ENV = gym.make("CartPole-v1")
 #ENV = ContBertrand()
