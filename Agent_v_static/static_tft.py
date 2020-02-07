@@ -6,7 +6,7 @@ Created on Thu Jan 30 14:51:55 2020
 @author: Filip Mellgren
 """
 import numpy as np
-from calc_nash_monopoly import best_response
+from calc_nash_monopoly import best_response, profit, colab_action
 from config import HYPERPARAMS, ECONPARAMS
 params = HYPERPARAMS['full_obs_NB']
 eparams = ECONPARAMS['base_case']
@@ -20,6 +20,7 @@ rival_act_n = eparams['nash_action'][0] # Rival's nash action # redundant
 nash_actions = eparams['nash_actions']
 monopoly_actions = eparams['monopoly_actions']
 
+pg_action
 
 # Static Tit-For-Tat player
 # TODO: update this so that it is built as a firm and then calculate collaborative and punishing actions
@@ -66,4 +67,68 @@ class Tft:
             return(action)
         else: # Colaborate
             return(own_colab_action)
+            
+class Amtft:
+    '''
+    Approximate Markov for Tit For Tat
+    This agent is based on Lerer & Peysakhovic (2018)*. It is designed to
+    fullfill a number of key properties of an agent facing social dilemmas.    
+    
+    * "Maintaining cooperation in complex social dilemmas using deep 
+    reinforcement learning"
+    '''
+    def __init__(self, nA, a0, mu, firm0, firm1, T, gamma):
+        self.reset(nA, a0, mu, firm0, firm1, T, gamma)
+        
+    def reset(self, nA, a0, mu, firm0, firm1, T, gamma):
+        self.b = 0 # begins in a cooperative phase
+        self.W = 0 # Payoff balance initiates at 0
+        self.T = T # Threshold for how much profit gain rival can gather before punishment
+        self.c_act = colab_action(nA, a0, mu, firm0, firm1)[0]
+        self.c_act1 = colab_action(nA, a0, mu, firm0, firm1)[1]
+        self.d_act = best_response(self.c_act1, nA, a0, mu, firm0, firm1)
+
+        self.a0 = a0
+        self.mu = mu
+        self.firm0 = firm0
+        self.firm1 = firm1
+        self.nA = nA
+        #self.alpha
+        self.total_pg = []
+        act_colab = np.array([self.c_act, self.c_act1])
+        self.profit1_cc = profit(act_colab, self.a0, self.mu, self.firm0, self.firm1, self.nA)[1]
+        self.Q1_cc = gamma * self.profit1_cc / (1 - gamma) # infinite sum of discounted p_cc starting next period
+        return
+    
+    def act(self, act1):
+        meta_act = np.array([self.c_act, act1])
+        r1 = profit(meta_act, self.a0, self.mu, self.firm0, self.firm1, self.nA)[1]
+        
+        deviation = r1 + self.Q1_cc - self.profit1_cc - self.Q1_cc
+        
+        if self.b == 0:
+            act = self.c_act
+            self.W = self.W + deviation
+        else:
+            act = self.d_act
+            self.b = self.b - 1
+            
+        if self.W > self.T:
+            self.b = self.len_defect(deviation) # length of punishment period
+            self.W = 0
+        return(act)
+            
+    def len_defect():
+        '''
+        Calculate length of a punishment phase.
+        
+        profits under punishment - profits that would have accrued under collab
+        
+        has to be greater than 
+        '''
+        #TODO develop this
+        return(4)
+            
+        
+        
             
