@@ -201,3 +201,31 @@ def min_profit(nA, a0, mu, firm0, firm1):
     min_profit = min(min0, min1)
     return(min_profit)
 
+# Colaboration action
+def colab_action(nA, a0, mu, firm0, firm1, tol = 0):
+    # TODO: what if a different action leads to a higher profit for both?
+    # IS it then okay to allow for some unfairness?
+    '''
+    The action that gives both agents the highest, most equal profit gain.
+    Function returns actions compatible with a collusion where profit gains are
+    maximised under the condition that the difference of the profit gains is 
+    less than or equal to some tolerance level, tol. If no such split exists,
+    tol gets gradually increased.
+    '''
+    nash_action_n = nash_action(nA, a0, mu, firm0, firm1)
+    nash_profit_n = profit(nash_action_n, a0, mu, firm0, firm1, nA)
+    
+    profits0 = profit_matrix(nA, a0, mu, firm0, firm1)
+    profits1 = profit_matrix(nA, a0, mu, firm1, firm0)
+    profit_gain0 = profits0 - nash_profit_n[0]
+    profit_gain1 = profits1 - nash_profit_n[1]
+    
+    diff = abs(profit_gain0 - profit_gain1.transpose())
+    action = (0,0)
+    while action == (0,0):
+        feasible = diff <= tol
+        x = feasible * profits0
+        action = np.unravel_index(x.argmax(), x.shape) # 2d argmax
+        tol = tol + 1e-6
+    action = np.array([action[0], action[1]])
+    return(action)
