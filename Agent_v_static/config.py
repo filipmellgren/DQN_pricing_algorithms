@@ -25,7 +25,7 @@ HYPERPARAMS = {
                 'epsilon_final': 0.1,
                 'nA': 50,
                 'dO': 6,
-                'dO_a': 2,
+                'dO_a': 6,
                 'frames': 1_000_000,
                 'seed': 1,
                 'path': "checkpoint.pt",
@@ -66,9 +66,9 @@ A0 = 1
 MU = 1/2
 grid = nA # Higher values gives better approximation of nash/monopoly-profits
 
-
 NASH_ACTIONS = actions_dict(nA, A0, MU, firmlist, firmlist, "nash")
 MONOPOLY_ACTIONS = actions_dict(nA, A0, MU, firmlist, firmlist, "monopoly")
+COLAB_ACTIONS = actions_dict(nA, A0, MU, firmlist, firmlist, "colab")
 
 NASH_ACTION = nash_action(grid, A0, MU, firm0, firm1)
 NASH_PRICE = act_to_price(NASH_ACTION, grid)
@@ -85,6 +85,7 @@ MAX_PRICE = act_to_price(nA, nA)
 
 
 
+# TODO: what in econparams is being used?
 ECONPARAMS = {
         'base_case': {
                 'firm0': firm0,
@@ -92,7 +93,7 @@ ECONPARAMS = {
                 'a0': A0,
                 'mu': MU,
                 'nash_profit': NASH_PROFIT,
-                'monopoly_profit': MONOPOLY_PROFIT,
+                'monopoly_profit': MONOPOLY_PROFIT, 
                 'min_price': MIN_PRICE,
                 'max_price': MAX_PRICE,
                 'monopoly_action': MONOPOLY_ACTION,
@@ -100,10 +101,8 @@ ECONPARAMS = {
                 'min_profit': MIN_PROFIT,
                 'max_profit': MAX_PROFIT,
                 'nash_actions': NASH_ACTIONS,
-                'monopoly_actions': MONOPOLY_ACTIONS}}
-
-#ENV = gym.make("CartPole-v1")
-#ENV = ContBertrand()
+                'monopoly_actions': MONOPOLY_ACTIONS,
+                'colab_actions': COLAB_ACTIONS}}
 
 # Functions
 def calc_loss(batch, net, tgt_net, device="cpu"):
@@ -122,14 +121,14 @@ def calc_loss(batch, net, tgt_net, device="cpu"):
     expected_state_action_values = next_state_values * GAMMA + rewards_v
     return nn.MSELoss()(state_action_values, expected_state_action_values)
 
-def avg_profit_gain(avg_profit, nash_profit = NASH_PROFIT[0], monopoly_profit = MONOPOLY_PROFIT[0]):
+def profit_gain(profit, nash_profit, monopoly_profit):
     '''
     avg_profit_gain() gives an index of collusion
     INPUT
-    avg_profit......scalar. Mean profit over episodes.
+    profit......scalar. Mean profit over episodes.
     OUTPUT
-    apg.............normalised value of the scalar
+    pg..........normalised value of the scalar
     '''
-    apg = (avg_profit - nash_profit) / (monopoly_profit - nash_profit)
-    return apg
+    pg = (profit - nash_profit) / (monopoly_profit - nash_profit)
+    return pg
 

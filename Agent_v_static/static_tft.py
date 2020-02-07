@@ -6,7 +6,7 @@ Created on Thu Jan 30 14:51:55 2020
 @author: Filip Mellgren
 """
 import numpy as np
-from calc_nash_monopoly import best_response, profit, colab_action
+from calc_nash_monopoly import best_response, profit
 from config import HYPERPARAMS, ECONPARAMS
 params = HYPERPARAMS['full_obs_NB']
 eparams = ECONPARAMS['base_case']
@@ -19,8 +19,7 @@ rival_act_c = eparams['monopoly_action'][0] # Rival's monopoly action # redundan
 rival_act_n = eparams['nash_action'][0] # Rival's nash action # redundant
 nash_actions = eparams['nash_actions']
 monopoly_actions = eparams['monopoly_actions']
-
-pg_action
+colab_actions = eparams['colab_actions']
 
 # Static Tit-For-Tat player
 # TODO: update this so that it is built as a firm and then calculate collaborative and punishing actions
@@ -70,9 +69,13 @@ class Tft:
             
 class Amtft:
     '''
-    Approximate Markov for Tit For Tat
+    Approximate Markov for Tit For Tat (amTFT)
     This agent is based on Lerer & Peysakhovic (2018)*. It is designed to
     fullfill a number of key properties of an agent facing social dilemmas.    
+    
+    Every time the other firm cheats, the amTFT agent takes record and bases
+    its actions on this record. A cheating opponent gets punished whereas a 
+    collaborative opponent is treated with cooperative actions.
     
     * "Maintaining cooperation in complex social dilemmas using deep 
     reinforcement learning"
@@ -84,10 +87,11 @@ class Amtft:
         self.b = 0 # begins in a cooperative phase
         self.W = 0 # Payoff balance initiates at 0
         self.T = T # Threshold for how much profit gain rival can gather before punishment
-        self.c_act = colab_action(nA, a0, mu, firm0, firm1)[0]
-        self.c_act1 = colab_action(nA, a0, mu, firm0, firm1)[1]
-        self.d_act = best_response(self.c_act1, nA, a0, mu, firm0, firm1)
-
+    
+        self.c_act = colab_actions[str((firm0, firm1))][0]
+        self.c_act1 = colab_actions[str((firm0, firm1))][1]
+        self.d_act = nash_actions[str((firm0, firm1))][0] #best_response(self.c_act1, nA, a0, mu, firm0, firm1)
+       
         self.a0 = a0
         self.mu = mu
         self.firm0 = firm0
@@ -114,7 +118,7 @@ class Amtft:
             self.b = self.b - 1
             
         if self.W > self.T:
-            self.b = self.len_defect(deviation) # length of punishment period
+            self.b = 4#self.len_defect() # length of punishment period
             self.W = 0
         return(act)
             

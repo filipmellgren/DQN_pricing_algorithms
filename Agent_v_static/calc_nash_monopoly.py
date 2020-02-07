@@ -17,22 +17,28 @@ Monopoly price: price that maximises the joint profits.
 import numpy as np
 import itertools
 # Hyperparameters
-MIN_PRICE = 1.5
-PRICE_RANGE = 0.3
+MIN_PRICE = 1 # Prev: 1.5
+PRICE_RANGE = 1 # Prev 0.3
 
 # Functions
 def act_to_price(action_n, nA):
     '''
     Converts discrete actions into prices
-    This is currently wrong. Need to know
+    This is currently wrong. Need to know 
     '''
+    # TODO: currently wrong?
     price_n = (PRICE_RANGE * action_n/(nA-1)) + MIN_PRICE 
 
     return(price_n)
 
 def demand(price_n, a_n, a0, mu):
     '''
-    Calculates a demand for each firm, given prices
+    Calculates a demand for each firm, given prices.
+    INPUT
+    price_n.....a vector of prices
+    a_n.........vector of product quality indices (vertical differentiation)
+    a0..........scalar of inverse index of aggregate demand
+    mu..........scalar of horizontal differentiation
     '''
     p = price_n
     a_not = np.flip(a_n) # to obtain the other firm's a
@@ -41,14 +47,13 @@ def demand(price_n, a_n, a0, mu):
     denom = np.exp((a_n - p)/(mu)) + np.exp((a_not - p_not)/(mu)) + np.exp(a0/mu)
     quantity_n = num / denom
     return(quantity_n)
- # TODO: does profit take action or price?
     
 def profit(action_n, a0, mu, firm0, firm1, nA):
     '''
     profit_n gives profits in the market after taking prices as argument
     INPUT
     action_n.....an np.array([]) containing two actions (to be converted to prices)
-    firmX, .dictionaries with cost and quality information
+    firmX, ......dictionaries with cost and quality information
     OUTPUT
     profit_n.......profit, an np.array([]) containing profits
     '''
@@ -91,6 +96,9 @@ def best_response(rival_action, nA, a0, mu, firm0, firm1):
     a0..............outside option value
     mu..............an economic parameter
     firmX...........a dictionary with firm info (cost and quality)
+    
+    OUTPUT
+    argmax(profits).the action that yields the highest profit given rivals action.
     '''
     # Profits
     profits = np.zeros((nA, 1))
@@ -109,6 +117,7 @@ def nash_action(nA, a0, mu, firm0, firm1):
     prices.
     Finally, the function finds the Nash equilibrium by checking whether the
     best response to an action is the same as the action.
+    
     INPUT
     nA...........Number of actions. Higher value gives more accurate output
     OUTPUT
@@ -168,6 +177,16 @@ def monopoly_action(nA, a0, mu, firm0, firm1):
 def actions_dict(nA, a0, mu, firmlist1, firmlist2, action_type):
     '''
     Returns a dictionary of actions given two lists to be combined.
+    The dictionary can be used as a reference, so given the dictionary and two
+    firms, the corresponding actions (in a monopoly or equilibrium) can quickly
+    be accessed.
+    
+    INPUT
+    nA
+    a0
+    mu
+    firmlistX......cartesian product of all available firms.
+    action_type....either 'monopoly' or 'nash', what type of actions to be gen.
     '''
     actions_dict = {}
     
@@ -183,19 +202,31 @@ def actions_dict(nA, a0, mu, firmlist1, firmlist2, action_type):
             firm1 = element[1]
             action_array = nash_action(nA, a0, mu, firm0, firm1)
             actions_dict[str(element)] = action_array
+    elif action_type == "colab":
+        for element in itertools.product(firmlist1,firmlist2):
+            firm0 = element[0]
+            firm1 = element[1]
+            action_array = colab_action(nA, a0, mu, firm0, firm1)
+            actions_dict[str(element)] = action_array
     else:
-        raise ValueError('action_type has to be either "monopoly" or "nash".')
+        raise ValueError('action_type has to be either "monopoly", "nash", or "colab".')
     
     return(actions_dict)
 
 # Max and mins
 def max_profit(nA, a0, mu, firm0, firm1):
+    '''
+    Returns the highest achievable profit of a single firm that can be gained.
+    '''
     max0 = np.amax(profit_matrix(nA, a0, mu, firm0, firm1))
     max1 = np.amax(profit_matrix(nA, a0, mu, firm1, firm0))
     max_profit = max(max0, max1)
     return(max_profit)
     
 def min_profit(nA, a0, mu, firm0, firm1):
+    '''
+    Returns the lowest achievable profit of a single firm that can be gained.
+    '''
     min0 = np.amin(profit_matrix(nA, a0, mu, firm0, firm1))
     min1 = np.amin(profit_matrix(nA, a0, mu, firm1, firm0))
     min_profit = min(min0, min1)

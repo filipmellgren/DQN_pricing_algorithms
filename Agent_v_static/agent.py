@@ -27,9 +27,9 @@ class Agent1:
         self.length_opt_act = 0
         self.total_pg = []
         self.best_mean_pg = None
-        self.state = self.env.reset()
+        #self.state = self.env.reset()
         return
-    
+    # TODO: why not use the agents net attribute instead of passing it as an argument?
     def act(self, net, state,eps, device = "cpu"):
         done_reward = None
         if np.random.uniform() < eps: # eps goes from 0 to 1 over iterations
@@ -38,7 +38,7 @@ class Agent1:
             state_v = torch.Tensor(state).to(device)
             q_vals_v = net(state_v)
             #_, action = self.max_value_action()
-            _, act_v = torch.max(q_vals_v, dim=0) # TODO: correct diumension?
+            _, act_v = torch.max(q_vals_v, dim=0) 
             action = int(act_v.item())
             self.time_same_best_action(action)
         return action

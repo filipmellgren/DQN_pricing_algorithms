@@ -17,17 +17,13 @@ import numpy as np
 from config import HYPERPARAMS
 from config import ECONPARAMS
 from calc_nash_monopoly import profit
-from config import avg_profit_gain
 params = HYPERPARAMS['full_obs_NB']
 eparams = ECONPARAMS['base_case']
-
 
 MIN_PRICE = eparams['min_price']
 MAX_PRICE = eparams['max_price']
 MIN_PROFIT = eparams['min_profit']
 MAX_PROFIT = eparams['max_profit']
-NASH_PROFIT = eparams['nash_profit'][0]
-MONOPOLY_PROFIT = eparams['monopoly_profit'][0]
 
 firm0 = eparams['firm0']
 firm1 = eparams['firm1']
@@ -36,8 +32,6 @@ MU = eparams['mu']
 
 nA = params['nA']
 FRAMES = params['frames']
-
-
 
 class ContBertrand(gym.Env):
     metadata = {'render.modes': ['human']} #?
@@ -53,24 +47,34 @@ class ContBertrand(gym.Env):
     that rows and columns (the state) are prices in the previous period.
     
     The state is defined as:
-    state = np.array([reward[0], action[0], reward[1], action[1], eps, frame])      
+    state = np.array([reward[0], action[0], reward[1], action[1], eps, frame,
+    cost0, cost1, vert0, vert1])      
     """
     def __init__(self):
         # self.variables go here
-        # States are defined as the profits and prices of both agents
+        # States are defined as the profits, prices, and competition params
+        # of both agents
         high_state = np.array([
             MAX_PROFIT,
             MAX_PRICE,
             MAX_PROFIT,
             MAX_PRICE,
             1,
-            FRAMES])
+            FRAMES,
+            10,
+            10,
+            10,
+            10])
     
         low_state = np.array([
                 MIN_PROFIT,
                 MIN_PRICE,
                 MIN_PROFIT,
                 MIN_PRICE,
+                0,
+                0,
+                0,
+                0,
                 0,
                 0])
     
@@ -79,38 +83,33 @@ class ContBertrand(gym.Env):
         self.observation_space = spaces.Box(low_state, high_state,
                                             dtype=np.float32)
         self.seed()
-        self.reset()
+        self.reset(firm0, firm1)
         
-        def to_a(act1, act2, nA): # TODO: unused
-            '''
-            Takes two discrete actions and turns it into a meta action
-            '''
-            action = act1*nA + act2
-            return(action)
             
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def step(self, action0, action1, eps, frame):
+    def step(self, action0, action1):
         # action made by the "meta agent", i.e. all market participants' joint action
         # Or, two actions packed into a vector
         action = np.array([action0, action1])
         #assert self.action_space.contains(action), "%r (%s) invalid"%(action, type(action)) # TODO: make this work (threw assertionerror for valid actions)
-        #state = self.state
         reward = profit(action, a0 = A0, mu = MU, firm0 = firm0, firm1 = firm1, nA = nA)
-        #reward = avg_profit_gain(reward)
-        self.state = np.array([reward[0], action[0], reward[1], action[1], eps, frame])
-        done = bool(False) # TODO: how to define this? Might want to include a counter in the environment
+        self.state = np.array([reward[0], action[0], reward[1], action[1], self.cost0, self.cost1, self.vert0, self.vert1])
+        done = bool(False) # TODO: end with probability 1 - gamma
         return self.state, reward, done, {}
     
-    def reset(self, nash_profit = NASH_PROFIT, nash_price = MIN_PRICE, monopoly_profit = MONOPOLY_PROFIT, monopoly_price = MAX_PRICE):
-        profit0 = self.np_random.uniform(low=nash_profit, high=monopoly_profit)
-        price0 = self.np_random.uniform(low=nash_price, high=monopoly_price)
-        profit1 = self.np_random.uniform(low=nash_profit, high=monopoly_profit)
-        price1 = self.np_random.uniform(low=nash_price, high=monopoly_price)
-        eps = 1
-        idx = 0
-        self.state = np.array([profit0, price0, profit1, price1, eps, idx]) 
+    def reset(self, firm0, firm1, min_profit = MIN_PROFIT, min_price = MIN_PRICE, max_profit = MAX_PROFIT, max_price = MAX_PRICE):
+        profit0 = self.np_random.uniform(low=min_profit, high=max_profit)
+        price0 = self.np_random.uniform(low=min_price, high=max_price)
+        profit1 = self.np_random.uniform(low=min_profit, high=max_profit)
+        price1 = self.np_random.uniform(low=min_price, high=max_price)
+        self.cost0 = firm0['cost']
+        self.cost1 = firm1['cost']
+        self.vert0 = firm0['quality']
+        self.vert1 = firm1['quality']
+        
+        self.state = np.array([profit0, price0, profit1, price1, self.cost0, self.cost1, self.vert0, self.vert1]) 
         return np.array(self.state)
 
