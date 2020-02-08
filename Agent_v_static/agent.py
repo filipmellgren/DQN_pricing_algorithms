@@ -9,8 +9,8 @@ Agent
 """
 import numpy as np
 import torch
-from cont_bertrand import ContBertrand
-env = ContBertrand()
+#from cont_bertrand import ContBertrand
+#env = ContBertrand()
 
 
 class Agent1:
@@ -31,7 +31,7 @@ class Agent1:
         return
     # TODO: why not use the agents net attribute instead of passing it as an argument?
     def act(self, net, state,eps, device = "cpu"):
-        done_reward = None
+       # done_reward = 0 # TODO: should this be the PV of future cashflows?
         if np.random.uniform() < eps: # eps goes from 0 to 1 over iterations
             action = self.env.single_action_space.sample()
         else:

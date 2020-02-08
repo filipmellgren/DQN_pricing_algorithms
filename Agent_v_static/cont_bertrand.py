@@ -20,15 +20,16 @@ from calc_nash_monopoly import profit
 params = HYPERPARAMS['full_obs_NB']
 eparams = ECONPARAMS['base_case']
 
-MIN_PRICE = eparams['min_price']
-MAX_PRICE = eparams['max_price']
-MIN_PROFIT = eparams['min_profit']
-MAX_PROFIT = eparams['max_profit']
+#MIN_PRICE = eparams['min_price']
+#MAX_PRICE = eparams['max_price']
+#MIN_PROFIT = eparams['min_profit']
+#MAX_PROFIT = eparams['max_profit']
 
-firm0 = eparams['firm0']
-firm1 = eparams['firm1']
+#firm0 = eparams['firm0']
+#firm1 = eparams['firm1']
 A0 = eparams['a0']
 MU = eparams['mu']
+GAMMA = params['gamma']
 
 nA = params['nA']
 FRAMES = params['frames']
@@ -50,15 +51,15 @@ class ContBertrand(gym.Env):
     state = np.array([reward[0], action[0], reward[1], action[1], eps, frame,
     cost0, cost1, vert0, vert1])      
     """
-    def __init__(self):
+    def __init__(self, firm0, firm1):
         # self.variables go here
         # States are defined as the profits, prices, and competition params
         # of both agents
         high_state = np.array([
-            MAX_PROFIT,
-            MAX_PRICE,
-            MAX_PROFIT,
-            MAX_PRICE,
+            10,
+            10,
+            10,
+            10,
             1,
             FRAMES,
             10,
@@ -67,10 +68,10 @@ class ContBertrand(gym.Env):
             10])
     
         low_state = np.array([
-                MIN_PROFIT,
-                MIN_PRICE,
-                MIN_PROFIT,
-                MIN_PRICE,
+                -10,
+                0,
+                -10,
+                0,
                 0,
                 0,
                 0,
@@ -95,12 +96,21 @@ class ContBertrand(gym.Env):
         # Or, two actions packed into a vector
         action = np.array([action0, action1])
         #assert self.action_space.contains(action), "%r (%s) invalid"%(action, type(action)) # TODO: make this work (threw assertionerror for valid actions)
-        reward = profit(action, a0 = A0, mu = MU, firm0 = firm0, firm1 = firm1, nA = nA)
+        reward = profit(action, a0 = A0, mu = MU, firm0 = self.firm0, firm1 = self.firm1, nA = nA)
         self.state = np.array([reward[0], action[0], reward[1], action[1], self.cost0, self.cost1, self.vert0, self.vert1])
-        done = bool(False) # TODO: end with probability 1 - gamma
+        if np.random.random() > GAMMA:
+            done = True
+        else:
+            done = False
         return self.state, reward, done, {}
     
-    def reset(self, firm0, firm1, min_profit = MIN_PROFIT, min_price = MIN_PRICE, max_profit = MAX_PROFIT, max_price = MAX_PRICE):
+    def reset(self, firm0, firm1):
+        # TODO: define better
+        min_profit = 0
+        min_price = 0
+        max_profit = 0.3
+        max_price = 2
+        
         profit0 = self.np_random.uniform(low=min_profit, high=max_profit)
         price0 = self.np_random.uniform(low=min_price, high=max_price)
         profit1 = self.np_random.uniform(low=min_profit, high=max_profit)
@@ -110,6 +120,8 @@ class ContBertrand(gym.Env):
         self.vert0 = firm0['quality']
         self.vert1 = firm1['quality']
         
+        self.firm0 = firm0
+        self.firm1 = firm1
         self.state = np.array([profit0, price0, profit1, price1, self.cost0, self.cost1, self.vert0, self.vert1]) 
         return np.array(self.state)
 
