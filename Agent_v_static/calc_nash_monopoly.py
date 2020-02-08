@@ -154,6 +154,7 @@ def nash_action(nA, a0, mu, firm0, firm1):
 
 # MONOPOLY
 def monopoly_action(nA, a0, mu, firm0, firm1):
+    # TODO: is this correct? I've found larger profits
     '''
     Calculates the fully collusive actions.
     Allows assymetric firms.
@@ -167,7 +168,7 @@ def monopoly_action(nA, a0, mu, firm0, firm1):
     profits0 = profit_matrix(nA, a0, mu, firm0, firm1)
     profits1 = profit_matrix(nA, a0, mu, firm1, firm0) # Note the swapped position of the firms
     # Add profits to get sum of overall profits
-    profits = profits0 + profits1
+    profits = profits0 + profits1.transpose() # Transpose because actions have to correspond
     act1,act2 = np.where(profits==profits.max())
     act1 = int(act1)
     act2 = int(act2)
@@ -233,30 +234,23 @@ def min_profit(nA, a0, mu, firm0, firm1):
     return(min_profit)
 
 # Colaboration action
-def colab_action(nA, a0, mu, firm0, firm1, tol = 0):
-    # TODO: what if a different action leads to a higher profit for both?
-    # IS it then okay to allow for some unfairness?
+def colab_action(nA, a0, mu, firm0, firm1, tol = 0.00):
+    # TODO: How to define the collusive action?
+    # cant be too high – then they could find a higher joint outcome
+    # must lead to profits at least as large as Nash profits for both firms
+    # TODO: take solution and test whether +1 for both leads to a profitable outcome
     '''
-    The action that gives both agents the highest, most equal profit gain.
-    Function returns actions compatible with a collusion where profit gains are
-    maximised under the condition that the difference of the profit gains is 
-    less than or equal to some tolerance level, tol. If no such split exists,
-    tol gets gradually increased.
+    Returns a colaborative action. An action is deemed colaborative if there is
+    no higher action that could lead to a higher profit for both when the rival
+    plays its colaborative action.
     '''
-    nash_action_n = nash_action(nA, a0, mu, firm0, firm1)
-    nash_profit_n = profit(nash_action_n, a0, mu, firm0, firm1, nA)
-    
-    profits0 = profit_matrix(nA, a0, mu, firm0, firm1)
-    profits1 = profit_matrix(nA, a0, mu, firm1, firm0)
-    profit_gain0 = profits0 - nash_profit_n[0]
-    profit_gain1 = profits1 - nash_profit_n[1]
-    
-    diff = abs(profit_gain0 - profit_gain1.transpose())
-    action = (0,0)
-    while action == (0,0):
-        feasible = diff <= tol
-        x = feasible * profits0
-        action = np.unravel_index(x.argmax(), x.shape) # 2d argmax
-        tol = tol + 1e-6
-    action = np.array([action[0], action[1]])
+    action = nash_action(nA, a0, mu, firm0, firm1)
+    profit_prev = profit(action, a0, mu, firm0, firm1, nA)
+    profit_next = profit(action, a0, mu, firm0, firm1, nA)
+    while (profit_next - profit_prev >= 0).all() and (action <= nA).all():
+        profit_prev = profit_next
+        action = action + 1
+        profit_next = profit(action, a0, mu, firm0, firm1, nA)
+    action = action - 1    
     return(action)
+
