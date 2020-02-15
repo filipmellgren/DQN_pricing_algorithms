@@ -17,8 +17,8 @@ Monopoly price: price that maximises the joint profits.
 import numpy as np
 import itertools
 # Hyperparameters
-MIN_PRICE = 1 # Prev: 1.5
-PRICE_RANGE = 1 # Prev 0.3
+MIN_PRICE = 1.4 # Prev: 1.5
+PRICE_RANGE = 0.5 # Prev 0.3
 
 # Functions
 def act_to_price(action_n, nA):
