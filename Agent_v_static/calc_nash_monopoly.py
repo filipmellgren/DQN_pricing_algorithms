@@ -10,9 +10,8 @@ Configuration of parameters
 Nash price: price from which each agent has no incentive to deviate from.
     No agent can be made better off by a unilateral change in price from a N.E.
 
-Monopoly price: price that maximises the joint profits.
-    Because of symmetry, the price is the same for both firms. 
-    If not symmetric, the two firms maximise joint profit and split it equally.
+Monopoly prices: prices that maximises the profit of the unified firm.
+
 """
 import numpy as np
 import itertools
@@ -26,7 +25,6 @@ def act_to_price(action_n, nA):
     Converts discrete actions into prices
     This is currently wrong. Need to know 
     '''
-    # TODO: currently wrong?
     price_n = (PRICE_RANGE * action_n/(nA-1)) + MIN_PRICE 
 
     return(price_n)
@@ -154,7 +152,6 @@ def nash_action(nA, a0, mu, firm0, firm1):
 
 # MONOPOLY
 def monopoly_action(nA, a0, mu, firm0, firm1):
-    # TODO: is this correct? I've found larger profits
     '''
     Calculates the fully collusive actions.
     Allows assymetric firms.
@@ -235,10 +232,6 @@ def min_profit(nA, a0, mu, firm0, firm1):
 
 # Colaboration action
 def colab_action(nA, a0, mu, firm0, firm1, tol = 0.00):
-    # TODO: How to define the collusive action?
-    # cant be too high – then they could find a higher joint outcome
-    # must lead to profits at least as large as Nash profits for both firms
-    # TODO: take solution and test whether +1 for both leads to a profitable outcome
     '''
     Returns a colaborative action. An action is deemed colaborative if there is
     no higher action that could lead to a higher profit for both when the rival

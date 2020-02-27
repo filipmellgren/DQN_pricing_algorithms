@@ -30,18 +30,3 @@ class Net(nn.Module):
         x = F.relu(x)
         x = self.output(x)
         return x
-
-# =============================================================================
-# class Net(nn.Module):
-#     def __init__(self, input_dim, output_dim):
-#         super(Net, self).__init__()
-#         self.hidden = nn.Linear(input_dim, 32) # Hidden layer
-#         self.output = nn.Linear(32, output_dim) # Output layer
-# 
-#     def forward(self, x):
-#         x = self.hidden(x)
-#         x = F.relu(x)
-#         x = self.output(x)
-#         return x
-#     # Think it was 32 when first worked. Testing with 16.
-# =============================================================================

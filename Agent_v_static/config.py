@@ -15,39 +15,23 @@ from calc_nash_monopoly import act_to_price, actions_dict
 HYPERPARAMS = {
         'full_obs_NB': {
                 'gamma': 0.95, 
-                'batch_size': 32, 
-                'replay_size': 100_000,
+                'batch_size': 64,
+                'replay_size': 400_000,
                 'replay_start_size': 100_000,
-                'learning_rate': 0.01,
-                'sync_target_frames': 20_000, # Set to p_end/(1-p_end)
-                'epsilon_decay_last_frame': 2_000_000,
+                'learning_rate': 0.0001,
+                'sync_target_frames': 10_000, 
+                'epsilon_decay_last_frame': 1_000_000,
                 'epsilon_start': 1,
-                'epsilon_final': 0.05,
-                'nA': 20,
-                'dO': 7,
-                'dO_a': 7,
+                'epsilon_final': 0.01,
+                'nA': 30,
+                'dO': 6,
+                'dO_a': 4,
                 'frames': 2_000_000,
                 'seed': 1,
                 'path': "checkpoint.pt",
-                'nodes': 32, # For neural network (its hidden layers has same no. nodes)
-                'p_end' : 0.001 # TODO: increase slightly
-                },
-        'deepmind2015': {
-                'gamma': 0.99,
-                'batch_size': 32,
-                'replay_size': 1_000_000,
-                'replay_start_size': 50_000,
-                'learning_rate': 0.00025, # Note, also included momentum
-                'sync_target_frames': 10_000, # They don't save only when a record has been reached
-                'epsilon_decay_last_frame': 1_000_000,
-                'epsilon_start': 1,
-                'epsilon_final': 0.1,
-                'nA': 20,
-                'dO': 6,
-                'dO_a': 4,
-                'frames': 5_000,
-                'seed': 1,
-                'path': "checkpoint.pt"
+                'nodes': 8, # For neural network (its hidden layers has same no. nodes)
+                'p_end' : 0.001,
+                'punishlen': 1
                 }
         }
 
@@ -59,7 +43,7 @@ MEAN_C = 1
 MEAN_Q = 2
 FIRMLIST = []
 for c in [MEAN_C]:
-    for q in [MEAN_Q]: # should q not be higher? TODO
+    for q in [1.9, 1.95, MEAN_Q, 2.05, 2.1]:
         FIRMLIST.append({'cost': c, 'quality': q})
 
 A0 = 1
@@ -108,13 +92,15 @@ def calc_loss(batch, net, tgt_net, device="cpu", double = True):
 
 def profit_gain(reward, nash_profit, monopoly_profit):
     '''
-    avg_profit_gain() gives an index of collusion
+    avg_profit_gain() gives an index of collusion.
+    Note, it assumes that monopoly profit >= Nash profit, which is not
+    necessarily true.
     INPUT
-    reward......scalar. Mean profit over episodes.
+    reward......scalar. Mean profit above baseline over episodes. (baseline is nash_profit)
     OUTPUT
     pg..........normalised value of the scalar
     '''
-    pg = (reward - nash_profit) / (monopoly_profit - nash_profit)
+    pg = (reward) / (monopoly_profit - nash_profit)
     return pg
 
 def normalize_state(state):
@@ -127,3 +113,21 @@ def normalize_state(state):
     state[6] = (state[6] - MEAN_Q)
     state[7] = (state[7] - MEAN_Q)
     return(state)
+    
+    
+    
+# =============================================================================
+# firm1 = {'cost': 1, 'quality': 1.9}
+# firm0 = {'cost': 1, 'quality': 2.1}
+# 
+# col = colab_action(nA, a0, mu, firm0, firm1, tol = 0.00)
+# mon = monopoly_action(nA, a0, mu, firm0, firm1)
+# nash = nash_action(nA, a0, mu, firm0, firm1)
+# cheat = np.array([10, 10])
+# pcheat = profit(cheat, a0, mu, firm0, firm1, nA)
+# pnash = profit(nash, a0, mu, firm0, firm1, nA)
+# pmon = profit(mon, a0, mu, firm0, firm1, nA)
+# pcheat - pnash
+# pmon - pnash
+# (pcheat - pnash )/ (pmon - pnash)
+# =============================================================================
