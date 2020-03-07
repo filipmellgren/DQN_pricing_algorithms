@@ -26,13 +26,14 @@ class Agent1:
         self.best_mean_pg = None
 
         return
-    def act(self, net, state,eps, device = "cpu"):
+    def act(self, state,eps, device = "cpu"):
         '''
         act selects an action for the agent.
         With probability eps, the action is randomized uniformly from the 
         state space. Else, the action taken is the value with the corresponing
         highest Q-value.
         INPUT
+        # TODO: Why not use agent.net?
         net......is a neural network which can give Q values based on state
         state....is the current state in the environment
         eps......probability to select a random action
@@ -44,7 +45,7 @@ class Agent1:
             action = self.env.single_action_space.sample()
         else:
             state_v = torch.Tensor(state).to(device)
-            q_vals_v = net(state_v)
+            q_vals_v = self.net(state_v) # TODO: used to be simply net(state_v)
             _, act_v = torch.max(q_vals_v, dim=0) 
             action = int(act_v.item())
             self.time_same_best_action(action)

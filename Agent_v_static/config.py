@@ -10,23 +10,23 @@ Configuration of parameters
 import torch
 from torch import nn
 from calc_nash_monopoly import act_to_price, actions_dict
-
+import numpy as np
 # Hyperparameters
 HYPERPARAMS = {
         'full_obs_NB': {
                 'gamma': 0.95, 
-                'batch_size': 64,
-                'replay_size': 400_000,
+                'batch_size': 32,
+                'replay_size': 300_000,
                 'replay_start_size': 100_000,
                 'learning_rate': 0.0001,
                 'sync_target_frames': 10_000, 
-                'epsilon_decay_last_frame': 1_000_000,
+                'epsilon_decay_last_frame': 2_000_000,
                 'epsilon_start': 1,
                 'epsilon_final': 0.01,
                 'nA': 30,
                 'dO': 6,
                 'dO_a': 4,
-                'frames': 2_000_000,
+                'frames': 3_000_000,
                 'seed': 1,
                 'path': "checkpoint.pt",
                 'nodes': 8, # For neural network (its hidden layers has same no. nodes)
@@ -41,11 +41,25 @@ GAMMA = HYPERPARAMS['full_obs_NB']['gamma']
 # Economic parameters
 MEAN_C = 1
 MEAN_Q = 2
+
+# Train with this one on.
 FIRMLIST = []
+diff_range = np.linspace(MEAN_Q*0.9,MEAN_Q*1.1,5)
 for c in [MEAN_C]:
-    for q in [1.9, 1.95, MEAN_Q, 2.05, 2.1]:
+    for q in diff_range:
+        q = round(q, 2)
         FIRMLIST.append({'cost': c, 'quality': q})
 
+# =============================================================================
+# # Testing purposes      
+# FIRMLIST_test = []
+# diff_range = np.linspace(MEAN_Q*0.85,MEAN_Q*1.15,15)
+# for c in [MEAN_C]:
+#     for q in diff_range:
+#         q = round(q, 2)
+#         FIRMLIST_test.append({'cost': c, 'quality': q})
+# 
+# =============================================================================
 A0 = 1
 MU = 1/2
 grid = nA # Higher values gives better approximation of nash/monopoly-profits
@@ -54,12 +68,16 @@ NASH_ACTIONS = actions_dict(nA, A0, MU, FIRMLIST, FIRMLIST, "nash")
 MONOPOLY_ACTIONS = actions_dict(nA, A0, MU, FIRMLIST, FIRMLIST, "monopoly")
 COLAB_ACTIONS = actions_dict(nA, A0, MU, FIRMLIST, FIRMLIST, "colab")
 
+# =============================================================================
+# NASH_ACTIONS_test = actions_dict(nA, A0, MU, FIRMLIST_test, FIRMLIST_test, "nash")
+# MONOPOLY_ACTIONS_test = actions_dict(nA, A0, MU, FIRMLIST_test, FIRMLIST_test, "monopoly")
+# COLAB_ACTIONS_test = actions_dict(nA, A0, MU, FIRMLIST_test, FIRMLIST_test, "colab")
+# =============================================================================
+
 MIN_PRICE = act_to_price(0, nA)
 MAX_PRICE = act_to_price(nA, nA)
 
 
-
-# TODO: what in econparams is being used?
 ECONPARAMS = {
         'base_case': {
                 'firmlist': FIRMLIST,
@@ -67,7 +85,8 @@ ECONPARAMS = {
                 'mu': MU,
                 'nash_actions': NASH_ACTIONS,
                 'monopoly_actions': MONOPOLY_ACTIONS,
-                'colab_actions': COLAB_ACTIONS}}
+                'colab_actions': COLAB_ACTIONS
+                }}
 
 # Functions
 def calc_loss(batch, net, tgt_net, device="cpu", double = True):
@@ -90,7 +109,7 @@ def calc_loss(batch, net, tgt_net, device="cpu", double = True):
     expected_state_action_values = next_state_values * GAMMA + rewards_v
     return nn.MSELoss()(state_action_values, expected_state_action_values)
 
-def profit_gain(reward, nash_profit, monopoly_profit):
+def profit_gain(reward, nash_profit, colab_profit):
     '''
     avg_profit_gain() gives an index of collusion.
     Note, it assumes that monopoly profit >= Nash profit, which is not
@@ -100,7 +119,7 @@ def profit_gain(reward, nash_profit, monopoly_profit):
     OUTPUT
     pg..........normalised value of the scalar
     '''
-    pg = (reward) / (monopoly_profit - nash_profit)
+    pg = (reward) / (colab_profit - nash_profit) # prev: (monopoly_profit - nash_profit)
     return pg
 
 def normalize_state(state):
@@ -113,21 +132,3 @@ def normalize_state(state):
     state[6] = (state[6] - MEAN_Q)
     state[7] = (state[7] - MEAN_Q)
     return(state)
-    
-    
-    
-# =============================================================================
-# firm1 = {'cost': 1, 'quality': 1.9}
-# firm0 = {'cost': 1, 'quality': 2.1}
-# 
-# col = colab_action(nA, a0, mu, firm0, firm1, tol = 0.00)
-# mon = monopoly_action(nA, a0, mu, firm0, firm1)
-# nash = nash_action(nA, a0, mu, firm0, firm1)
-# cheat = np.array([10, 10])
-# pcheat = profit(cheat, a0, mu, firm0, firm1, nA)
-# pnash = profit(nash, a0, mu, firm0, firm1, nA)
-# pmon = profit(mon, a0, mu, firm0, firm1, nA)
-# pcheat - pnash
-# pmon - pnash
-# (pcheat - pnash )/ (pmon - pnash)
-# =============================================================================
