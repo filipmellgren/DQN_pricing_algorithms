@@ -16,3 +16,10 @@ Here is some indication of the intended structure (as I can remember it 4 months
 * training_seq.py: contains mega training loop and initialises the agents to train in the environment.
 * testing_seq.py: is where two trained agents meet each other in a test scenario
 * Main_notebook.ipynb: is a main file containing the highest level logic and calls on the other files to enable training and testing.
+
+Less important files include:
+* actactprofit_mat.py: which creates a profit matrix for each pair of action.
+* get_qs.py: extracts and exports Q-values
+
+
+Note: the folder: Agent_v_static is basically irrelevant as it was used for a different approach.
