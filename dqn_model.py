@@ -13,15 +13,15 @@ This file defines a neural network
 import torch.nn.functional as F
 import torch.nn as nn
 
-# feedforward fullly connected with ReLus according to Goodfellow (good thing it already had reLus)
-# Net same as in: apple gatherer/wolfpack paper: https://arxiv.org/pdf/1702.03037.pdf?utm_source=datafloq&utm_medium=ref&utm_campaign=datafloq
+# feedforward fullly connected with ReLus according to Goodfellow
+# Net similar to apple gatherer/wolfpack paper: https://arxiv.org/pdf/1702.03037.pdf?utm_source=datafloq&utm_medium=ref&utm_campaign=datafloq
 
 class Net(nn.Module):
-    def __init__(self, input_dim, output_dim):
+    def __init__(self, input_dim, output_dim, nodes):
         super(Net, self).__init__()
-        self.hidden = nn.Linear(input_dim, 32) # Hidden layer
-        self.hidden2 = nn.Linear(32, 32) # Hidden layer
-        self.output = nn.Linear(32, output_dim) # Output layer
+        self.hidden = nn.Linear(input_dim, nodes) # Hidden layer
+        self.hidden2 = nn.Linear(nodes, nodes) # Hidden layer
+        self.output = nn.Linear(nodes, output_dim) # Output layer
 
     def forward(self, x):
         x = self.hidden(x)
@@ -30,4 +30,3 @@ class Net(nn.Module):
         x = F.relu(x)
         x = self.output(x)
         return x
-    
