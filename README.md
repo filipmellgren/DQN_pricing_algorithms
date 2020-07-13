@@ -3,6 +3,8 @@ This repository contains code related to my master thesis "Tacit collusion with 
 
 In short, the repository creates the output in the thesis by allowing two RL agents train against each other in a simulated environment. Note that training requires substantial time.
 
+In practice, I had multiple versions running simultanouesly that had slightly different hyperparameters. I therefore exported the main folder with all the files, made the necessary change, and let it run. This repo contains one specific setup of hyperparameters. All changes happened in the "Main_notebook.ipynb" file (I think).
+
 This repository became a mess towards the end of the thesis project as I made large changes quickly, did not know how to efficiently manage a change in approach I wasn't sure about (should probably have used branches).
 
 Here is some indication of the intended structure (as I can remember it 4 months later) with the most important files:
@@ -16,6 +18,7 @@ Here is some indication of the intended structure (as I can remember it 4 months
 * training_seq.py: contains mega training loop and initialises the agents to train in the environment.
 * testing_seq.py: is where two trained agents meet each other in a test scenario
 * Main_notebook.ipynb: is a main file containing the highest level logic and calls on the other files to enable training and testing.
+* test_agent.ipynb: was probably what I actually used to test agents.
 
 Less important files include:
 * actactprofit_mat.py: which creates a profit matrix for each pair of action.
